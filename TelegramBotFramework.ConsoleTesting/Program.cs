@@ -7,8 +7,7 @@ namespace TelegramBotFramework.ConsoleApp
     {
         static void Main()
         {
-            var wr = new TelegramBotWrapper("", 32, "42");
-            wr.Bot.SendTextMessageAsync(new Telegram.Bot.Types.ChatId(42), "asdasd");
+            var wr = new TelegramBotWrapper("", 42, "42");     
             Console.WriteLine("Started. Press any key to stop");
             Console.ReadLine();
         }
