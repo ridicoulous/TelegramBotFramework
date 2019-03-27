@@ -8,7 +8,7 @@ namespace TelegramBotFramework.Core.Extensions
         {
             services.AddSingleton(serviceProvider =>
             {
-                var instance = new TelegramBotWrapper("582936396:AAEgKrDTUfRGO8v7BtEqAjeqOKHYkuyAUig", 166938818, alias);
+                var instance = new TelegramBotWrapper(telegramBotKey, adminId, alias);
                 return instance;
             });
         }
