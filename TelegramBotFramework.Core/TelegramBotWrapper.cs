@@ -35,14 +35,9 @@ namespace TelegramBotFramework.Core
         public delegate CommandResponse ChatCommandMethod(CommandEventArgs args);
 
         public delegate CommandResponse CallbackCommandMethod(CallbackEventArgs args);
-
         public Dictionary<ChatCommand, ChatCommandMethod> Commands = new Dictionary<ChatCommand, ChatCommandMethod>();
-
         public Dictionary<CallbackCommand, CallbackCommandMethod> CallbackCommands = new Dictionary<CallbackCommand, CallbackCommandMethod>();
-
-        public Dictionary<TelegramBotModule, Type> Modules = new Dictionary<TelegramBotModule, Type>();
-
-        // public TelegramBotLoader Loader;
+        public Dictionary<TelegramBotModule, Type> Modules = new Dictionary<TelegramBotModule, Type>();        
         public TelegramBotLogger Log = new TelegramBotLogger(Path.Combine(RootDirectory, "Logs"));
         public TelegramBotDbContext Db = new TelegramBotDbContext();
         public TelegramBotSetting LoadedSetting;
