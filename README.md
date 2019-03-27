@@ -52,7 +52,7 @@ public void ConfigureServices(IServiceCollection services)
     services.AddTelegramBot("12345:AAAAAAAAAAAAAAAbbbbxccccccc", 424242, "NewBotConfigAlias");
 }
 ````
-
+It will be intstatiate wrapper as Singleton and this instance take care to run and use all your modules written in cuurent running solution
 ## Donations
 Donations are greatly appreciated and a motivation to keep improving.
 
