@@ -7,7 +7,7 @@ using TelegramBotFramework.Core.SQLiteDb.Extensions;
 
 namespace TelegramBotFramework.Core.Helpers
 {
-    class UserHelper
+    public static class UserHelper
     {
         public static TelegramBotUser GetTelegramUser(TelegramBotDbContext db, Update update = null, InlineQuery query = null, CallbackQuery cbQuery = null, bool logPoint = true)
         {

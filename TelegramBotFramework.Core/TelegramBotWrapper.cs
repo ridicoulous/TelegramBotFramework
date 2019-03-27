@@ -16,11 +16,10 @@ using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.Logging;
 using TelegramBotFramework.Core.Objects;
 using TelegramBotFramework.Core.SQLiteDb;
-using TgBotFramework.Core.Interfaces;
 
 namespace TelegramBotFramework.Core
 {
-    public class TelegramBotWrapper: ITelegramBotWrapper
+    public class TelegramBotWrapper : ITelegramBotWrapper
     {
         public static string RootDirectory
         {
@@ -37,29 +36,35 @@ namespace TelegramBotFramework.Core
         public delegate CommandResponse CallbackCommandMethod(CallbackEventArgs args);
         public Dictionary<ChatCommand, ChatCommandMethod> Commands = new Dictionary<ChatCommand, ChatCommandMethod>();
         public Dictionary<CallbackCommand, CallbackCommandMethod> CallbackCommands = new Dictionary<CallbackCommand, CallbackCommandMethod>();
-        public Dictionary<TelegramBotModule, Type> Modules = new Dictionary<TelegramBotModule, Type>();        
-        public TelegramBotLogger Log = new TelegramBotLogger(Path.Combine(RootDirectory, "Logs"));
-        public TelegramBotDbContext Db = new TelegramBotDbContext();
+        public Dictionary<TelegramBotModule, Type> Modules = new Dictionary<TelegramBotModule, Type>();
+        public TelegramBotLogger Log;
+        public TelegramBotDbContext Db;
         public TelegramBotSetting LoadedSetting;
         public ModuleMessenger Messenger = new ModuleMessenger();
         public TelegramBotClient Bot;
         internal static User Me = null;
 
-        public TelegramBotWrapper(string key, int adminId, string alias)
+        public TelegramBotWrapper(string key, int adminId, string alias = "TelegramBotFramework")
         {
-            using (var db = new TelegramBotDbContext())
+            using (var db = new TelegramBotDbContext(alias))
             {
                 db.Database.EnsureCreated();
+                if(!db.Users.Any(c=>c.UserId==adminId))
+                {
+                    db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId });
+                    db.SaveChanges();
+                }
             }
+            Log = new TelegramBotLogger(Path.Combine(RootDirectory, "Logs-" + alias));
+            Db = new TelegramBotDbContext(alias);
             var setting = new TelegramBotSetting() { Alias = alias, TelegramDefaultAdminUserId = adminId, TelegramBotAPIKey = key };
-            Db = new TelegramBotDbContext();
             LoadedSetting = setting;
-
             Console.OutputEncoding = Encoding.UTF8;
             Messenger.MessageSent += MessengerOnMessageSent;
             AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
             Run();
-            var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules");
+            var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-" + alias);
+
             WatchForNewModules(telegramBotModuleDir);
         }
         private void WatchForNewModules(string path)
@@ -85,7 +90,7 @@ namespace TelegramBotFramework.Core
             //load base methods first
             GetMethodsFromAssembly(Assembly.GetExecutingAssembly());
             Log.WriteLine("Scanning Addon TelegramBotModules directory for custom TelegramBotModules...", overrideColor: ConsoleColor.Cyan);
-            var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules");
+            var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-"+LoadedSetting.Alias);
             Directory.CreateDirectory(telegramBotModuleDir);
 
             Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -102,7 +107,7 @@ namespace TelegramBotFramework.Core
         }
 
         private void GetMethodsFromAssembly(Assembly assembly)
-        {      
+        {
             foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsDefined(typeof(TelegramBotModule)) && myType.IsSubclassOf(typeof(TelegramBotModuleBase))))
             {
 
@@ -148,13 +153,13 @@ namespace TelegramBotFramework.Core
                 LoadModules();
                 Bot.DeleteWebhookAsync();
                 Me = Bot.GetMeAsync().Result;
-            } 
-            catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
                 Log.WriteLine("502 bad gateway, restarting in 2 seconds", LogLevel.Error, fileName: "telegram.log");
                 Thread.Sleep(TimeSpan.FromSeconds(2));
-         
+
             }
             Bot.OnUpdate += BotOnUpdateReceived;
             Bot.OnInlineQuery += BotOnOnInlineQuery;
@@ -162,7 +167,7 @@ namespace TelegramBotFramework.Core
 
             Bot.StartReceiving();
 
-            Log.WriteLine("Connected to Telegram and listening..." + Me.FirstName+Me.LastName);
+            Log.WriteLine("Connected to Telegram and listening..." + Me.FirstName + Me.LastName);
         }
 
         private void BotOnOnCallbackQuery(object sender, CallbackQueryEventArgs callbackQueryEventArgs)

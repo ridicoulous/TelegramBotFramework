@@ -1,12 +1,16 @@
-﻿using TelegramBotFramework.Core;
+﻿using System.Linq;
+using System.Text;
+using TelegramBotFramework.Core;
+using TelegramBotFramework.Core.Helpers;
+
 using TelegramBotFramework.Core.Objects;
 
 namespace TelegramBotFramework.ConsoleApp.Modules
 {
     [TelegramBotModule(Author = "parabola949", Name = "Admin", Version = "1.0")]
-    class Admin //: TelegramBotModuleBase
+    public class Admin : TelegramBotModuleBase
     {
-        public Admin(TelegramBotWrapper bot)//:base(bot)
+        public Admin(TelegramBotWrapper bot) : base(bot)
         {
 
         }
@@ -70,30 +74,41 @@ namespace TelegramBotFramework.ConsoleApp.Modules
 
         #region Chat Commands
 
-        //[ChatCommand(Triggers = new[] { "addbotadmin", "addadmin" }, DevOnly = true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
-        //public static CommandResponse AddBotAdmin(CommandEventArgs args)
-        //{
-        //    var target = UserHelper.GetTarget(args);
-        //    if (target != null && target.ID != args.SourceUser.ID)
-        //    {
-        //        target.IsBotAdmin = true;
-        //        return new CommandResponse($"{target.Name} is now a bot admin.");
-        //    }
-        //    return new CommandResponse(null);
-        //}
+        [ChatCommand(Triggers = new[] { "addbotadmin", "addadmin" }, DevOnly = true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
+        public CommandResponse AddBotAdmin(CommandEventArgs args)
+        {
+            var target = UserHelper.GetTarget(args);
+            if (target != null && target.ID != args.SourceUser.ID)
+            {
+                target.IsBotAdmin = true;
+                return new CommandResponse($"{target.Name} is now a bot admin.");
+            }
+            return new CommandResponse(null);
+        }
 
-        //[ChatCommand(Triggers = new[] { "rembotadmin", "remadmin" }, DevOnly = true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
-        //public static CommandResponse RemoveBotAdmin(CommandEventArgs args)
-        //{
-        //    var target = UserHelper.GetTarget(args);
-        //    if (target != null && target.ID != args.SourceUser.ID)
-        //    {
-        //        target.IsBotAdmin = false;
-        //        return new CommandResponse($"{target.Name} is no longer a bot admin.");
-        //    }
-        //    return new CommandResponse(null);
-        //}
+        [ChatCommand(Triggers = new[] { "rembotadmin", "remadmin" }, DevOnly = true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
+        public CommandResponse RemoveBotAdmin(CommandEventArgs args)
+        {
+            var target = UserHelper.GetTarget(args);
+            if (target != null && target.ID != args.SourceUser.ID)
+            {
+                target.IsBotAdmin = false;
+                return new CommandResponse($"{target.Name} is no longer a bot admin.");
+            }
+            return new CommandResponse(null);
+        }
+        [ChatCommand(Triggers = new[] { "users" }, DevOnly = true)]
+        public CommandResponse GetUsersList(CommandEventArgs args)
+        {
+            var sb = new StringBuilder();
+            var users = BotWrapper.Db.Users.ToList();
+            foreach (var u in users)
+            {
+                sb.Append($"{u.UserId}: {u.Name} {u.UserName} {u.IsBotAdmin} {u.FirstSeen}\n");
+            }
+            return new CommandResponse(sb.ToString());
 
+        }
         //[ChatCommand(Triggers = new[] { "cs" }, DevOnly = true, AllowInlineAdmin = true)]
         //public static CommandResponse RunCsCode(CommandEventArgs args)
         //{

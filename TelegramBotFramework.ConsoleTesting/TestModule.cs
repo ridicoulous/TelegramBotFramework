@@ -19,9 +19,15 @@ namespace TelegramBotFramework.ConsoleApp
         [ChatCommand(Triggers = new[] { "start" }, HideFromInline = true, DontSearchInline = true)]
         public CommandResponse Start(CommandEventArgs args)
         {
-            return new CommandResponse($"Hi there, I'm an open source framework inspired by [Mr. GreyWolf](https://github.com/GreyWolfDev/CSChatBot) for easily building chat bots using modular system.  You can find my source code [here](https://github.com/ridicoulous/TelegramBotFramework).\nUse /modules to see what modules I have available, and `/commands <modulename>` to see what commands are in a specific module.", parseMode: ParseMode.Markdown);
-        }
+            return new CommandResponse($"Hi there, I'm an open source framework for easily building chat bots using modular system.  You can find my source code [here](https://github.com/ridicoulous/TelegramBotFramework).\nUse /modules to see what modules I have available, and `/commands <modulename>` to see what commands are in a specific module.", parseMode: ParseMode.Markdown);
 
+            //return new CommandResponse($"Hi there, I'm an open source framework inspired by [Mr. GreyWolf](https://github.com/GreyWolfDev/CSChatBot) for easily building chat bots using modular system.  You can find my source code [here](https://github.com/ridicoulous/TelegramBotFramework).\nUse /modules to see what modules I have available, and `/commands <modulename>` to see what commands are in a specific module.", parseMode: ParseMode.Markdown);
+        }
+        [ChatCommand(Triggers = new[] { "startt" }, BotAdminOnly = true, DontSearchInline = true)]
+        public CommandResponse Startiq(CommandEventArgs args)
+        {
+            return new CommandResponse($"Looks like you're admin now", parseMode: ParseMode.Markdown);
+        }
         [ChatCommand(Triggers = new[] { "version" }, HelpText = "Gets the current build version / time")]
         public CommandResponse GetVersion(CommandEventArgs args)
         {
