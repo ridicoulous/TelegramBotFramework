@@ -18,6 +18,8 @@ In Visual Studio in the top menu select 'Tools' -> 'NuGet Package Manager' -> 'P
 After doing either of above steps you should now be ready to actually start using TelegramBotFramework.
 
 ## Getting started
+First of all you must get your own token to communicate with telegram bot api. Open your Telegram application and type in search BotFather. Send him `/newbot` command and follow up instructions
+
 After  it's time to actually use it. To get started we have to add the TelegramBotFramework namespace:  `using TelegramBotFramework;`.
 
 TelegramBotFramework uses wonderful [library](https://github.com/TelegramBots/Telegram.Bot) to  interact with the [Telegram](https://telegram.org) API. 
