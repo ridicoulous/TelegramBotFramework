@@ -1,5 +1,6 @@
 # TelegramBotFramework
 Simple framework for easily building Telegram bots using modular system inspired by [Mr. GreyWolf](https://github.com/GreyWolfDev/CSChatBot)
+It uses reflection to automatically find all your modules and gets it's configuration from attributes. All the routine work will be done without your intervention. Just write logic and choose some magic word that will be trigger it's execution
 ## Installation
 ![Nuget version](https://img.shields.io/nuget/v/TelegramBotFramework.svg) ![Nuget downloads](https://img.shields.io/nuget/dt/TelegramBotFramework.svg)
 
