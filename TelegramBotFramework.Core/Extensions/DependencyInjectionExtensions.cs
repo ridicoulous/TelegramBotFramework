@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-
+using Microsoft.AspNetCore.Builder;
 namespace TelegramBotFramework.Core.Extensions
 {
     public static class DependencyInjectionExtensions
@@ -11,6 +11,11 @@ namespace TelegramBotFramework.Core.Extensions
                 var instance = new TelegramBotWrapper(telegramBotKey, adminId, alias);
                 return instance;
             });
+        }
+
+        public static void UseTelegramBot(this IApplicationBuilder app)
+        {
+             app.ApplicationServices.GetServices<TelegramBotWrapper>();
         }
     }
 }
