@@ -43,9 +43,17 @@ namespace TelegramBotFramework.Core
         public ModuleMessenger Messenger = new ModuleMessenger();
         public TelegramBotClient Bot;
         internal static User Me = null;
-
-        public TelegramBotWrapper(string key, int adminId, string alias = "TelegramBotFramework")
+        public IServiceProvider ServiceProvider;
+        /// <summary>
+        /// Constructor. You may inject IServiceProvider to freely use you registered services in your modules
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="adminId"></param>
+        /// <param name="serviceProvider"></param>
+        /// <param name="alias"></param>
+        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider=null, string alias = "TelegramBotFramework")
         {
+            ServiceProvider = serviceProvider;
             using (var db = new TelegramBotDbContext(alias))
             {
                 db.Database.EnsureCreated();
@@ -109,8 +117,7 @@ namespace TelegramBotFramework.Core
         private void GetMethodsFromAssembly(Assembly assembly)
         {
             foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsDefined(typeof(TelegramBotModule)) && myType.IsSubclassOf(typeof(TelegramBotModuleBase))))
-            {
-
+            {               
                 var constructor = type.GetConstructor(new[] { typeof(TelegramBotWrapper) });
                 var instance = constructor.Invoke(new object[] { this });
                 var meths = instance.GetType().GetMethods();

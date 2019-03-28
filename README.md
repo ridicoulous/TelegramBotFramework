@@ -63,7 +63,7 @@ public void ConfigureServices(IServiceCollection services)
         }
 
 ````
-It will be intstatiate wrapper as Singleton and this instance take care to run and use all your modules written in cuurent running solution
+It will be intstatiate wrapper as Singleton and this instance take care to run and use all your modules written in cuurent running solution. By default, if you use dependency injection methods, `TelegramBotWrapper` class has injected `IServiceProvider` to have ability to use your services, added to your DI in your own modules
 ## Donations
 Donations are greatly appreciated and a motivation to keep improving.
 
