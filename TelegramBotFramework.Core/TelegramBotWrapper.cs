@@ -118,7 +118,12 @@ namespace TelegramBotFramework.Core
         {
             foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsDefined(typeof(TelegramBotModule)) && myType.IsSubclassOf(typeof(TelegramBotModuleBase))))
             {               
-                var constructor = type.GetConstructor(new[] { typeof(TelegramBotWrapper) });
+                var constructor = type.GetConstructor(new[] { this.GetType() });
+                if(constructor==null)
+                {
+                    Log.WriteLine($"Can not find constructor typeof {this.GetType().Name}, so this modules will not works", overrideColor: ConsoleColor.Cyan);
+                    continue;
+                }
                 var instance = constructor.Invoke(new object[] { this });
                 var meths = instance.GetType().GetMethods();
                 var tAtt = type.GetCustomAttributes<TelegramBotModule>().First();
