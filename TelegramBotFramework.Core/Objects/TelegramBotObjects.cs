@@ -18,14 +18,14 @@ namespace TelegramBotFramework.Core.Objects
         public bool IsModuleActive { get; set; }
     }
 
-    public abstract class TelegramBotModuleBase:ITelegramBotModule
+    public abstract class TelegramBotModuleBase : ITelegramBotModule
     {
         protected TelegramBotWrapper BotWrapper;
         public TelegramBotModuleBase(TelegramBotWrapper wrapper)
-        {            
+        {
             BotWrapper = wrapper;
         }
-        
+
     }
 
     [AttributeUsage(AttributeTargets.Method)]

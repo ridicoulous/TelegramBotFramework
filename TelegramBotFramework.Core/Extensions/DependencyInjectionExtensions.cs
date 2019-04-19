@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
+using TelegramBotFramework.Core.Interfaces;
+
 namespace TelegramBotFramework.Core.Extensions
 {
     public static class DependencyInjectionExtensions
@@ -15,7 +17,11 @@ namespace TelegramBotFramework.Core.Extensions
 
         public static void UseTelegramBot(this IApplicationBuilder app)
         {
-             app.ApplicationServices.GetServices<TelegramBotWrapper>();
+            var bots = app.ApplicationServices.GetServices<ITelegramBotWrapper>();
+            foreach (var b in bots)
+            {
+                b.Run();
+            }
         }
     }
 }

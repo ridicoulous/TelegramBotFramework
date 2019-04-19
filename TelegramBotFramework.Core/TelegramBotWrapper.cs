@@ -70,7 +70,7 @@ namespace TelegramBotFramework.Core
             Console.OutputEncoding = Encoding.UTF8;
             Messenger.MessageSent += MessengerOnMessageSent;
             AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
-            Run();
+           
             var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-" + alias);
 
             WatchForNewModules(telegramBotModuleDir);
@@ -434,7 +434,7 @@ namespace TelegramBotFramework.Core
                 }
                 catch
                 {
-                    // ignored
+                  
                 }
             }
         }
