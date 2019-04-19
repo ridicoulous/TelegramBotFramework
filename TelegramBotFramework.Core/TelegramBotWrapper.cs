@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading;
 using Telegram.Bot;
@@ -77,6 +78,10 @@ namespace TelegramBotFramework.Core
         }
         private void WatchForNewModules(string path)
         {
+            if(!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
             FileSystemWatcher watcher = new FileSystemWatcher();
             watcher.Path = path;
             watcher.NotifyFilter = NotifyFilters.LastWrite;
@@ -117,7 +122,23 @@ namespace TelegramBotFramework.Core
         private void GetMethodsFromAssembly(Assembly assembly)
         {
             foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsDefined(typeof(TelegramBotModule)) && myType.IsSubclassOf(typeof(TelegramBotModuleBase))))
-            {               
+            {
+                //var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(Guid.NewGuid().ToString()), AssemblyBuilderAccess.Run);
+                //ModuleBuilder mb = assemblyBuilder.DefineDynamicModule("testiq");
+                //TypeBuilder tb = mb.DefineType( "MyDynamicType", TypeAttributes.Public);
+                //Type[] parameterTypes = {this.GetType() };
+                //ConstructorBuilder ctor1 = tb.DefineConstructor( MethodAttributes.Public, CallingConventions.Standard, parameterTypes);
+
+                //ILGenerator ilGenerator = ctor1.GetILGenerator();
+                //ilGenerator.Emit(OpCodes.Ldarg_0);                // push &quot;this&quot; onto stack.
+                //ilGenerator.Emit(OpCodes.Call, ctor1);  // call base constructor
+
+                //ilGenerator.Emit(OpCodes.Nop);                    // C# compiler add 2 NOPS, so
+                //ilGenerator.Emit(OpCodes.Nop);                    // we'll add them, too.
+
+                //ilGenerator.Emit(OpCodes.Ret);                    // Return
+                
+                
                 var constructor = type.GetConstructor(new[] { this.GetType() });
                 if(constructor==null)
                 {
