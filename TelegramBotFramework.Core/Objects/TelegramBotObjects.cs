@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.SQLiteDb;
 using TgBotFramework.Core.Interfaces;
 
@@ -17,15 +18,32 @@ namespace TelegramBotFramework.Core.Objects
         public string Version { get; set; }
         public bool IsModuleActive { get; set; }
     }
-
-    public abstract class TelegramBotModuleBase : ITelegramBotModule
+    public abstract class TelegramBotModuleBase<T> : ITelegramBotModule where T : ITelegramBotWrapper
     {
-        protected TelegramBotWrapper BotWrapper;
-        public TelegramBotModuleBase(TelegramBotWrapper wrapper)
+        protected T BotWrapper;
+
+        public TelegramBotModuleBase()
+        {
+
+        }
+        public TelegramBotModuleBase(T wrapper)
         {
             BotWrapper = wrapper;
         }
 
+    }
+    public abstract class TelegramBotModuleBase:ITelegramBotModule
+    {
+        protected TelegramBotWrapper BotWrapper;
+        public TelegramBotModuleBase()
+        {
+
+        }
+        public TelegramBotModuleBase(TelegramBotWrapper wrapper)
+        {            
+            BotWrapper = wrapper;
+        }
+        
     }
 
     [AttributeUsage(AttributeTargets.Method)]
