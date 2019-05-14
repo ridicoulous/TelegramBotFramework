@@ -22,16 +22,16 @@ namespace TelegramBotFramework.Core
 {
     public class TelegramBotWrapper : ITelegramBotWrapper
     {
-        public static string RootDirectory
-        {
-            get
-            {
-                string codeBase = Assembly.GetExecutingAssembly().CodeBase;
-                UriBuilder uri = new UriBuilder(codeBase);
-                string path = Uri.UnescapeDataString(uri.Path);
-                return Path.GetDirectoryName(path);
-            }
-        }
+        public static string RootDirectory => AppDomain.CurrentDomain.BaseDirectory;
+        //{
+        //    get
+        //    {
+        //        string codeBase = Assembly.GetExecutingAssembly().CodeBase;
+        //        UriBuilder uri = new UriBuilder(codeBase);
+        //        string path = Uri.UnescapeDataString(uri.Path);
+        //        return Path.GetDirectoryName(path);
+        //    }
+        //}
         public delegate CommandResponse ChatCommandMethod(CommandEventArgs args);
 
         public delegate CommandResponse CallbackCommandMethod(CallbackEventArgs args);
