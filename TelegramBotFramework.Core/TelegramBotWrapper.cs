@@ -35,6 +35,8 @@ namespace TelegramBotFramework.Core
         public delegate CommandResponse ChatCommandMethod(CommandEventArgs args);
 
         public delegate CommandResponse CallbackCommandMethod(CallbackEventArgs args);
+        public delegate void OnException(Exception unhandled);
+        public event OnException ExceptionHappened;
         public Dictionary<ChatCommand, ChatCommandMethod> Commands = new Dictionary<ChatCommand, ChatCommandMethod>();
         public Dictionary<CallbackCommand, CallbackCommandMethod> CallbackCommands = new Dictionary<CallbackCommand, CallbackCommandMethod>();
         public Dictionary<TelegramBotModule, Type> Modules = new Dictionary<TelegramBotModule, Type>();
@@ -121,7 +123,8 @@ namespace TelegramBotFramework.Core
 
         private void GetMethodsFromAssembly(Assembly assembly)
         {
-            foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsDefined(typeof(TelegramBotModule)) && myType.IsSubclassOf(typeof(TelegramBotModuleBase))))
+            foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract 
+            && myType.IsDefined(typeof(TelegramBotModule)) && myType.IsSubclassOf(typeof(TelegramBotModuleBase))))
             {
                 //var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(Guid.NewGuid().ToString()), AssemblyBuilderAccess.Run);
                 //ModuleBuilder mb = assemblyBuilder.DefineDynamicModule("testiq");
@@ -145,24 +148,28 @@ namespace TelegramBotFramework.Core
                     Log.WriteLine($"Can not find constructor typeof {this.GetType().Name}, so this modules will not works", overrideColor: ConsoleColor.Cyan);
                     continue;
                 }
-                var instance = constructor.Invoke(new object[] { this });
-                var meths = instance.GetType().GetMethods();
-                var tAtt = type.GetCustomAttributes<TelegramBotModule>().First();
-                Modules.Add(tAtt, type);
-
-                foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
+                else
                 {
-                    var att = method.GetCustomAttributes<ChatCommand>().First();
-                    Commands.Add(att, (ChatCommandMethod)Delegate.CreateDelegate(typeof(ChatCommandMethod), instance, method));
-                    Log.WriteLine($"Loaded ChatCommand {method.Name}\n\t Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)}", overrideColor: ConsoleColor.Green);
+                    var instance = constructor.Invoke(new object[] { this });
+                    var meths = instance.GetType().GetMethods();
+                    var tAtt = type.GetCustomAttributes<TelegramBotModule>().First();
+                    Modules.Add(tAtt, type);
 
+                    foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
+                    {
+                        var att = method.GetCustomAttributes<ChatCommand>().First();
+                        Commands.Add(att, (ChatCommandMethod)Delegate.CreateDelegate(typeof(ChatCommandMethod), instance, method));
+                        Log.WriteLine($"Loaded ChatCommand {method.Name}\n\t Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)}", overrideColor: ConsoleColor.Green);
+
+                    }
+                    foreach (var m in type.GetMethods().Where(x => x.IsDefined(typeof(CallbackCommand))))
+                    {
+                        var att = m.GetCustomAttributes<CallbackCommand>().First();
+                        CallbackCommands.Add(att, (CallbackCommandMethod)Delegate.CreateDelegate(typeof(CallbackCommandMethod), instance, m));
+                        Log.WriteLine($"Loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}", overrideColor: ConsoleColor.Green);
+                    }
                 }
-                foreach (var m in type.GetMethods().Where(x => x.IsDefined(typeof(CallbackCommand))))
-                {
-                    var att = m.GetCustomAttributes<CallbackCommand>().First();
-                    CallbackCommands.Add(att, (CallbackCommandMethod)Delegate.CreateDelegate(typeof(CallbackCommandMethod), instance, m));
-                    Log.WriteLine($"Loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}", overrideColor: ConsoleColor.Green);
-                }
+               
             }
         }
         private void MessengerOnMessageSent(object sender, EventArgs e)
@@ -175,6 +182,8 @@ namespace TelegramBotFramework.Core
         {
             Exception ex = e.ExceptionObject as Exception;
             Log.WriteLine((e.ExceptionObject as Exception).Message, LogLevel.Error);
+            if(ex!=null)
+                ExceptionHappened(ex);
         }
 
         public void Run()
@@ -191,6 +200,8 @@ namespace TelegramBotFramework.Core
             {
                 Console.WriteLine(ex.ToString());
                 Log.WriteLine("502 bad gateway, restarting in 2 seconds", LogLevel.Error, fileName: "telegram.log");
+                Log.WriteLine(ex.ToString(), LogLevel.Error, fileName: "telegram.log");
+
                 Thread.Sleep(TimeSpan.FromSeconds(2));
 
             }
