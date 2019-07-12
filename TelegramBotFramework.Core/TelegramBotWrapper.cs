@@ -54,13 +54,13 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>
-        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider=null, string alias = "TelegramBotFramework")
+        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework")
         {
             ServiceProvider = serviceProvider;
             using (var db = new TelegramBotDbContext(alias))
             {
                 db.Database.EnsureCreated();
-                if(!db.Users.Any(c=>c.UserId==adminId))
+                if (!db.Users.Any(c => c.UserId == adminId))
                 {
                     db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId });
                     db.SaveChanges();
@@ -73,14 +73,14 @@ namespace TelegramBotFramework.Core
             Console.OutputEncoding = Encoding.UTF8;
             Messenger.MessageSent += MessengerOnMessageSent;
             AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
-           
+
             var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-" + alias);
 
             WatchForNewModules(telegramBotModuleDir);
         }
         private void WatchForNewModules(string path)
         {
-            if(!Directory.Exists(path))
+            if (!Directory.Exists(path))
             {
                 Directory.CreateDirectory(path);
             }
@@ -105,7 +105,7 @@ namespace TelegramBotFramework.Core
             //load base methods first
             GetMethodsFromAssembly(Assembly.GetExecutingAssembly());
             Log.WriteLine("Scanning Addon TelegramBotModules directory for custom TelegramBotModules...", overrideColor: ConsoleColor.Cyan);
-            var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-"+LoadedSetting.Alias);
+            var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-" + LoadedSetting.Alias);
             Directory.CreateDirectory(telegramBotModuleDir);
 
             Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -123,7 +123,7 @@ namespace TelegramBotFramework.Core
 
         private void GetMethodsFromAssembly(Assembly assembly)
         {
-            foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract 
+            foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
             && myType.IsDefined(typeof(TelegramBotModule)) && myType.IsSubclassOf(typeof(TelegramBotModuleBase))))
             {
                 //var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(Guid.NewGuid().ToString()), AssemblyBuilderAccess.Run);
@@ -140,10 +140,10 @@ namespace TelegramBotFramework.Core
                 //ilGenerator.Emit(OpCodes.Nop);                    // we'll add them, too.
 
                 //ilGenerator.Emit(OpCodes.Ret);                    // Return
-                
-                
+
+
                 var constructor = type.GetConstructor(new[] { this.GetType() });
-                if(constructor==null)
+                if (constructor == null)
                 {
                     Log.WriteLine($"Can not find constructor typeof {this.GetType().Name}, so this modules will not works", overrideColor: ConsoleColor.Cyan);
                     continue;
@@ -169,7 +169,7 @@ namespace TelegramBotFramework.Core
                         Log.WriteLine($"Loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}", overrideColor: ConsoleColor.Green);
                     }
                 }
-               
+
             }
         }
         private void MessengerOnMessageSent(object sender, EventArgs e)
@@ -182,7 +182,7 @@ namespace TelegramBotFramework.Core
         {
             Exception ex = e.ExceptionObject as Exception;
             Log.WriteLine((e.ExceptionObject as Exception).Message, LogLevel.Error);
-            if(ex!=null)
+            if (ex != null)
                 ExceptionHappened(ex);
         }
 
@@ -380,24 +380,25 @@ namespace TelegramBotFramework.Core
             if (update.Message.Type == MessageType.Text)
             {
                 //TODO: do something with this update
-                var msg = (update.Message.From.Username ?? update.Message.From.FirstName) + ": " + update.Message.Text;
-                var chat = update.Message.Chat.Title;
-                if (String.IsNullOrWhiteSpace(chat))
-                    chat = "Private Message";
-
-                var user = UserHelper.GetTelegramUser(Db, update);
-
-                if (user.Grounded) return;
-                TelegramBotGroup group;
-                if (update.Message.Chat.Type != ChatType.Private)
-                {
-                    group = GroupHelper.GetGroup(Db, update);
-                }
-                Log.WriteLine(chat, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
-                Log.WriteLine(msg, LogLevel.Info, ConsoleColor.White, "telegram.log");
-
                 try
                 {
+                    var msg = (update.Message.From.Username ?? update.Message.From.FirstName) + ": " + update.Message.Text;
+                    var chat = update.Message.Chat.Title;
+                    if (String.IsNullOrWhiteSpace(chat))
+                        chat = "Private Message";
+
+                    var user = UserHelper.GetTelegramUser(Db, update);
+
+                    if (user.Grounded) return;
+                    TelegramBotGroup group;
+                    if (update.Message.Chat.Type != ChatType.Private)
+                    {
+                        group = GroupHelper.GetGroup(Db, update);
+                    }
+                    Log.WriteLine(chat, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
+                    Log.WriteLine(msg, LogLevel.Info, ConsoleColor.White, "telegram.log");
+
+
                     if (update.Message.Text.StartsWith("!") || update.Message.Text.StartsWith("/"))
                     {
                         var args = GetParameters(update.Message.Text);
@@ -464,9 +465,9 @@ namespace TelegramBotFramework.Core
                         }
                     }
                 }
-                catch
+                catch(Exception ex)
                 {
-                  
+                    Log.WriteLine("Exception happend at handling update:\n"+ex.ToString(), LogLevel.Error, ConsoleColor.Cyan, "error.log");
                 }
             }
         }
@@ -474,7 +475,6 @@ namespace TelegramBotFramework.Core
         private static string[] GetParameters(string input)
         {
             if (String.IsNullOrEmpty(input)) return new[] { "", "" };
-            // ReSharper disable StringIndexOfIsCultureSpecific.1  -- It's a space, I don't care about culture.
             var result = input.Contains(" ") ? new[] { input.Substring(1, input.IndexOf(" ")).Trim(), input.Substring(input.IndexOf(" ") + 1) } : new[] { input.Substring(1).Trim(), null };
             result[0] = result[0].Replace("@" + Me.Username, "");
             return result;
