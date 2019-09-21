@@ -19,69 +19,33 @@ namespace TelegramBotFramework.Core.Objects
         public string Version { get; set; }
         public bool IsModuleActive { get; set; }
     }
-    public abstract class TelegramBotModuleBase<T> : TelegramBotModuleBase, ITelegramBotModule where T : ITelegramBotWrapper
+    public abstract class TelegramBotModuleBase<T> :  ITelegramBotModule where T : ITelegramBotWrapper
     {
 
-        T BotWrapper;
-        public TelegramBotModuleBase()
-        {
+        public T BotWrapper;
+        //public TelegramBotModuleBase()
+        //{
 
-        }
+        //}
         public TelegramBotModuleBase(T wrapper)
         {
             BotWrapper = wrapper;
         }
-        private readonly List<string> Questions = new List<string>();
-        protected void SetQuestions(List<string> questions)
-        {
-            Questions.Clear();
-            Questions.AddRange(questions);
-        }
-        public ConcurrentDictionary<long, Queue<string>> UsersWaitingAnswers = new ConcurrentDictionary<long, Queue<string>>();
-        protected virtual CommandResponse SendQuestion(long userId)
-        {
-            if (!UsersWaitingAnswers.ContainsKey(userId))
-            {
-                var queue = new Queue<string>();
-                foreach (var q in Questions)
-                {
-                    queue.Enqueue(q);
-                }
-                UsersWaitingAnswers.TryAdd(userId, queue);
-            }
-            else
-            {
-                return new CommandResponse("");
-            }
-            BotWrapper.AnswerHandling = true;
-            return new CommandResponse($"Enter value of `{UsersWaitingAnswers[userId].Peek()}`", parseMode: ParseMode.Markdown);
-        }
-        protected virtual CommandResponse GetAnswer(long userId)
-        {
-            if (UsersWaitingAnswers[userId].Peek() == null)
-            {
-                return new CommandResponse("ok, thx");
-            }
-            else
-            {
-                UsersWaitingAnswers[userId].Dequeue();
-                return SendQuestion(userId);
-            }
-        }
+       
     }
-    public abstract class TelegramBotModuleBase : ITelegramBotModule
-    {
-       // protected TelegramBotWrapper BotWrapper;
-        public TelegramBotModuleBase()
-        {
+    //public abstract class TelegramBotModuleBase : ITelegramBotModule
+    //{
+    //   // protected TelegramBotWrapper BotWrapper;
+    //    public TelegramBotModuleBase()
+    //    {
 
-        }
-        //public TelegramBotModuleBase(TelegramBotWrapper wrapper)
-        //{
-        //    BotWrapper = wrapper;
-        //}
+    //    }
+    //    //public TelegramBotModuleBase(TelegramBotWrapper wrapper)
+    //    //{
+    //    //    BotWrapper = wrapper;
+    //    //}
 
-    }
+    //}
 
     [AttributeUsage(AttributeTargets.Method)]
     public class ChatCommand : Attribute

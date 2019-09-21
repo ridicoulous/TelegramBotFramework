@@ -18,6 +18,7 @@ using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.Logging;
 using TelegramBotFramework.Core.Objects;
 using TelegramBotFramework.Core.SQLiteDb;
+using TgBotFramework.Core.Interfaces;
 
 namespace TelegramBotFramework.Core
 {
@@ -29,7 +30,7 @@ namespace TelegramBotFramework.Core
 
         public delegate CommandResponse ChatCommandMethod(CommandEventArgs args);
         public readonly ConcurrentDictionary<long, Queue<string>> UsersWaitingAnswers = new ConcurrentDictionary<long, Queue<string>>();
-
+        public readonly List<string> Questions = new List<string>();
         public delegate CommandResponse CallbackCommandMethod(CallbackEventArgs args);
         public delegate void OnException(Exception unhandled);
         public event OnException ExceptionHappened;
@@ -43,6 +44,7 @@ namespace TelegramBotFramework.Core
         public TelegramBotClient Bot;
         internal static User Me = null;
         public IServiceProvider ServiceProvider;
+        private readonly bool UserShouldGiveAnswers;
         /// <summary>
         /// Constructor. You may inject IServiceProvider to freely use you registered services in your modules
         /// </summary>
@@ -50,8 +52,13 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>
-        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework")
+        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool shouldUserAnswerOnQuestionsOnStart = false, List<string> questions = null)
         {
+            UserShouldGiveAnswers = shouldUserAnswerOnQuestionsOnStart;
+            if (UserShouldGiveAnswers && questions != null && questions.Any())
+            {
+                Questions.AddRange(questions);
+            }
             ServiceProvider = serviceProvider;
             using (var db = new TelegramBotDbContext(alias))
             {
@@ -120,35 +127,50 @@ namespace TelegramBotFramework.Core
         private void GetMethodsFromAssembly(Assembly assembly)
         {
             foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
-            && myType.IsDefined(typeof(TelegramBotModule)) && myType.IsSubclassOf(typeof(TelegramBotModuleBase))))
+            && myType.IsDefined(typeof(TelegramBotModule)) /*|| myType.IsAssignableFrom(typeof(ITelegramBotModule))*/))
             {
                 var constructor = type.GetConstructor(new[] { this.GetType() });
                 if (constructor == null)
                 {
-                    Log.WriteLine($"Can not find constructor typeof {this.GetType().Name}, so this modules will not works", overrideColor: ConsoleColor.Cyan);
+                    //Log.WriteLine($"Can not find constructor typeof {this.GetType().Name}, so this modules will not works", overrideColor: ConsoleColor.Cyan);
+                    //continue;
+                    constructor = type.GetConstructor(new[] { typeof(TelegramBotWrapper) });
+                }
+
+                var instance = constructor.Invoke(new object[] { this });
+                var meths = instance.GetType().GetMethods();
+                var tAtt = type.GetCustomAttributes<TelegramBotModule>().First();
+                if (Modules.ContainsKey(tAtt))
+                {
+                    Log.WriteLine($"{tAtt.Name} has been already loaded. Rename it, if it is no dublicate");
                     continue;
                 }
-                else
+                Modules.Add(tAtt, type);
+
+                foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
                 {
-                    var instance = constructor.Invoke(new object[] { this });
-                    var meths = instance.GetType().GetMethods();
-                    var tAtt = type.GetCustomAttributes<TelegramBotModule>().First();
-                    Modules.Add(tAtt, type);
-
-                    foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
+                    var att = method.GetCustomAttributes<ChatCommand>().First();
+                    if(Commands.ContainsKey(att))
                     {
-                        var att = method.GetCustomAttributes<ChatCommand>().First();
-                        Commands.Add(att, (ChatCommandMethod)Delegate.CreateDelegate(typeof(ChatCommandMethod), instance, method));
-                        Log.WriteLine($"Loaded ChatCommand {method.Name}\n\t Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)}", overrideColor: ConsoleColor.Green);
+                        Log.WriteLine($"ChatCommand {method.Name}\n\t  with Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)} not loaded, possible dublicate" , overrideColor: ConsoleColor.Cyan);
+                        continue;
+                    }
+                    Commands.Add(att, (ChatCommandMethod)Delegate.CreateDelegate(typeof(ChatCommandMethod), instance, method));
+                    Log.WriteLine($"Loaded ChatCommand {method.Name}\n\t Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)}", overrideColor: ConsoleColor.Green);
 
-                    }
-                    foreach (var m in type.GetMethods().Where(x => x.IsDefined(typeof(CallbackCommand))))
-                    {
-                        var att = m.GetCustomAttributes<CallbackCommand>().First();
-                        CallbackCommands.Add(att, (CallbackCommandMethod)Delegate.CreateDelegate(typeof(CallbackCommandMethod), instance, m));
-                        Log.WriteLine($"Loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}", overrideColor: ConsoleColor.Green);
-                    }
                 }
+                foreach (var m in type.GetMethods().Where(x => x.IsDefined(typeof(CallbackCommand))))
+                {
+                    var att = m.GetCustomAttributes<CallbackCommand>().First();
+                    if (CallbackCommands.ContainsKey(att))
+                    {
+                        Log.WriteLine($"Not loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}, possible dublicate", overrideColor: ConsoleColor.Cyan);
+                        continue;
+                    }
+                    CallbackCommands.Add(att, (CallbackCommandMethod)Delegate.CreateDelegate(typeof(CallbackCommandMethod), instance, m));
+                    Log.WriteLine($"Loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}", overrideColor: ConsoleColor.Green);
+                }
+
 
             }
         }
@@ -172,6 +194,15 @@ namespace TelegramBotFramework.Core
             try
             {
                 //Load in the modules
+                if (UserShouldGiveAnswers && !Questions.Any())
+                {
+                    Send(new MessageSentEventArgs()
+                    {
+                        Target = LoadedSetting.TelegramDefaultAdminUserId.ToString(),
+                        Response = new CommandResponse("Please, initialize instanse with list of questions to interact with user at start. I'll added default question")
+                    });
+                    Questions.Add("The Ultimate Question of Life, the Universe, and Everything?");
+                }
                 LoadModules();
                 Bot.DeleteWebhookAsync();
                 Me = Bot.GetMeAsync().Result;
@@ -193,7 +224,45 @@ namespace TelegramBotFramework.Core
 
             Log.WriteLine("Connected to Telegram and listening..." + Me.FirstName + Me.LastName);
         }
+        #region Questions
 
+        protected void SetQuestions(List<string> questions)
+        {
+            Questions.Clear();
+            Questions.AddRange(questions);
+        }
+
+        protected virtual CommandResponse SendQuestion(long userId)
+        {
+            if (!UsersWaitingAnswers.ContainsKey(userId))
+            {
+                var queue = new Queue<string>();
+                foreach (var q in Questions)
+                {
+                    queue.Enqueue(q);
+                }
+                UsersWaitingAnswers.TryAdd(userId, queue);
+            }
+            else
+            {
+                if (UsersWaitingAnswers[userId].Count == 0)
+                {
+                    AnswerHandling = false;
+                    Queue<string> t = new Queue<string>();
+                    UsersWaitingAnswers.TryRemove(userId, out t);
+                    return new CommandResponse("ok, thx for answers");
+                }
+                //   return new CommandResponse("");
+            }
+            AnswerHandling = true;
+            return new CommandResponse($"Enter value of `{UsersWaitingAnswers[userId].Peek()}:`", parseMode: ParseMode.Markdown);
+        }
+        protected virtual CommandResponse GetAnswer(long userId, string answer)
+        {
+            UsersWaitingAnswers[userId].Dequeue();
+            return SendQuestion(userId);
+        }
+        #endregion
         private void BotOnOnCallbackQuery(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
         {
             var query = callbackQueryEventArgs.CallbackQuery;
@@ -378,14 +447,18 @@ namespace TelegramBotFramework.Core
                     Log.WriteLine(chat, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
                     Log.WriteLine(msg, LogLevel.Info, ConsoleColor.White, "telegram.log");
 
-                    if ((AnswerHandling && UsersWaitingAnswers.Any()))
+                    if (update.Message.Text == "/start" && UserShouldGiveAnswers && !AnswerHandling)
                     {
-                        //Send(Get)
+                        Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = SendQuestion(update.Message.Chat.Id) });
+                        return;
                     }
-                    else
+                    else if (AnswerHandling && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
                     {
+                        Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = GetAnswer(update.Message.Chat.Id, update.Message.Text) });
+                        return;
+                    }
 
-                    }
+
                     if (update.Message.Text.StartsWith("!") || update.Message.Text.StartsWith("/"))
                     {
                         var args = GetParameters(update.Message.Text);
