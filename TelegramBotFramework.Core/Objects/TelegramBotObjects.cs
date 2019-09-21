@@ -19,10 +19,10 @@ namespace TelegramBotFramework.Core.Objects
         public string Version { get; set; }
         public bool IsModuleActive { get; set; }
     }
-    public abstract class TelegramBotModuleBase<T> : ITelegramBotModule where T : ITelegramBotWrapper
+    public abstract class TelegramBotModuleBase<T> : TelegramBotModuleBase, ITelegramBotModule where T : ITelegramBotWrapper
     {
-        protected T BotWrapper;
 
+        T BotWrapper;
         public TelegramBotModuleBase()
         {
 
@@ -37,7 +37,7 @@ namespace TelegramBotFramework.Core.Objects
             Questions.Clear();
             Questions.AddRange(questions);
         }
-
+        public ConcurrentDictionary<long, Queue<string>> UsersWaitingAnswers = new ConcurrentDictionary<long, Queue<string>>();
         protected virtual CommandResponse SendQuestion(long userId)
         {
             if (!UsersWaitingAnswers.ContainsKey(userId))
@@ -69,19 +69,19 @@ namespace TelegramBotFramework.Core.Objects
             }
         }
     }
-    //public abstract class TelegramBotModuleBase : ITelegramBotModule
-    //{
-    //    protected TelegramBotWrapper BotWrapper;
-    //    public TelegramBotModuleBase()
-    //    {
+    public abstract class TelegramBotModuleBase : ITelegramBotModule
+    {
+       // protected TelegramBotWrapper BotWrapper;
+        public TelegramBotModuleBase()
+        {
 
-    //    }
-    //    public TelegramBotModuleBase(TelegramBotWrapper wrapper)
-    //    {
-    //        BotWrapper = wrapper;
-    //    }
+        }
+        //public TelegramBotModuleBase(TelegramBotWrapper wrapper)
+        //{
+        //    BotWrapper = wrapper;
+        //}
 
-    //}
+    }
 
     [AttributeUsage(AttributeTargets.Method)]
     public class ChatCommand : Attribute
