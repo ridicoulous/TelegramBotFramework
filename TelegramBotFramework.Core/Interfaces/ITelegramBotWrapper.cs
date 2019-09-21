@@ -7,5 +7,6 @@ namespace TelegramBotFramework.Core.Interfaces
     public interface ITelegramBotWrapper
     {
         void Run();
+        bool AnswerHandling { get; set; }
     }
 }

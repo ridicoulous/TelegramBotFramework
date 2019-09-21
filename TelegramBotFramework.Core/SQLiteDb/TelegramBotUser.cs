@@ -9,7 +9,7 @@ namespace TelegramBotFramework.Core.SQLiteDb
         /// <summary>
         /// The database id of the user
         /// </summary>
-        public int? ID { get; internal set; }
+        public int ID { get; internal set; }
         /// <summary>
         /// The users display name
         /// </summary>
@@ -17,7 +17,7 @@ namespace TelegramBotFramework.Core.SQLiteDb
         /// <summary>
         /// The users Telegram Id
         /// </summary>
-        public int UserId { get; set; }
+        public long UserId { get; set; }
         /// <summary>
         /// The users @username
         /// </summary>

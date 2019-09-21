@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,16 +24,11 @@ namespace TelegramBotFramework.Core
     public class TelegramBotWrapper : ITelegramBotWrapper
     {
         public static string RootDirectory => AppDomain.CurrentDomain.BaseDirectory;
-        //{
-        //    get
-        //    {
-        //        string codeBase = Assembly.GetExecutingAssembly().CodeBase;
-        //        UriBuilder uri = new UriBuilder(codeBase);
-        //        string path = Uri.UnescapeDataString(uri.Path);
-        //        return Path.GetDirectoryName(path);
-        //    }
-        //}
+
+        public bool AnswerHandling { get; set ; }
+               
         public delegate CommandResponse ChatCommandMethod(CommandEventArgs args);
+        public readonly ConcurrentDictionary<long, Queue<string>> UsersWaitingAnswers = new ConcurrentDictionary<long, Queue<string>>();
 
         public delegate CommandResponse CallbackCommandMethod(CallbackEventArgs args);
         public Dictionary<ChatCommand, ChatCommandMethod> Commands = new Dictionary<ChatCommand, ChatCommandMethod>();
@@ -42,7 +38,7 @@ namespace TelegramBotFramework.Core
         public TelegramBotDbContext Db;
         public TelegramBotSetting LoadedSetting;
         public ModuleMessenger Messenger = new ModuleMessenger();
-        public TelegramBotClient Bot;
+        public TelegramBotClient Bot;    
         internal static User Me = null;
         public IServiceProvider ServiceProvider;
         /// <summary>
@@ -123,22 +119,6 @@ namespace TelegramBotFramework.Core
         {
             foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsDefined(typeof(TelegramBotModule)) && myType.IsSubclassOf(typeof(TelegramBotModuleBase))))
             {
-                //var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(Guid.NewGuid().ToString()), AssemblyBuilderAccess.Run);
-                //ModuleBuilder mb = assemblyBuilder.DefineDynamicModule("testiq");
-                //TypeBuilder tb = mb.DefineType( "MyDynamicType", TypeAttributes.Public);
-                //Type[] parameterTypes = {this.GetType() };
-                //ConstructorBuilder ctor1 = tb.DefineConstructor( MethodAttributes.Public, CallingConventions.Standard, parameterTypes);
-
-                //ILGenerator ilGenerator = ctor1.GetILGenerator();
-                //ilGenerator.Emit(OpCodes.Ldarg_0);                // push &quot;this&quot; onto stack.
-                //ilGenerator.Emit(OpCodes.Call, ctor1);  // call base constructor
-
-                //ilGenerator.Emit(OpCodes.Nop);                    // C# compiler add 2 NOPS, so
-                //ilGenerator.Emit(OpCodes.Nop);                    // we'll add them, too.
-
-                //ilGenerator.Emit(OpCodes.Ret);                    // Return
-                
-                
                 var constructor = type.GetConstructor(new[] { this.GetType() });
                 if(constructor==null)
                 {
@@ -384,9 +364,12 @@ namespace TelegramBotFramework.Core
                 }
                 Log.WriteLine(chat, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
                 Log.WriteLine(msg, LogLevel.Info, ConsoleColor.White, "telegram.log");
-
                 try
                 {
+                    if((AnswerHandling && UsersWaitingAnswers.Any()))
+                    {
+                     //   Send()
+                    }
                     if (update.Message.Text.StartsWith("!") || update.Message.Text.StartsWith("/"))
                     {
                         var args = GetParameters(update.Message.Text);
