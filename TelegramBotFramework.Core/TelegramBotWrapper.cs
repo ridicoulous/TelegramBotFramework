@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -18,6 +19,7 @@ using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.Logging;
 using TelegramBotFramework.Core.Objects;
 using TelegramBotFramework.Core.SQLiteDb;
+using TelegramBotFramework.Core.SQLiteDb.Extensions;
 using TgBotFramework.Core.Interfaces;
 
 namespace TelegramBotFramework.Core
@@ -27,13 +29,15 @@ namespace TelegramBotFramework.Core
         public static string RootDirectory => AppDomain.CurrentDomain.BaseDirectory;
 
         public bool AnswerHandling { get; set; }
-
+        public UsersSurveys CurrentUserUpdatingObjects { get; set; } = new UsersSurveys();
         public delegate CommandResponse ChatCommandMethod(CommandEventArgs args);
-        public readonly ConcurrentDictionary<long, Queue<string>> UsersWaitingAnswers = new ConcurrentDictionary<long, Queue<string>>();
+        public Dictionary<long, Queue<SurveyAttribute>> UsersWaitingAnswers { get; set; } = new Dictionary<long, Queue<SurveyAttribute>>();
         public readonly List<string> Questions = new List<string>();
         public delegate CommandResponse CallbackCommandMethod(CallbackEventArgs args);
         public delegate void OnException(Exception unhandled);
         public event OnException ExceptionHappened;
+        public event Action<long> OnSurveyComplete;
+
         public Dictionary<ChatCommand, ChatCommandMethod> Commands = new Dictionary<ChatCommand, ChatCommandMethod>();
         public Dictionary<CallbackCommand, CallbackCommandMethod> CallbackCommands = new Dictionary<CallbackCommand, CallbackCommandMethod>();
         public Dictionary<TelegramBotModule, Type> Modules = new Dictionary<TelegramBotModule, Type>();
@@ -45,6 +49,10 @@ namespace TelegramBotFramework.Core
         internal static User Me = null;
         public IServiceProvider ServiceProvider;
         private readonly bool UserShouldGiveAnswers;
+        public bool IsSurveyInitiated;
+
+        private readonly bool UserMustBeApprooved;
+
         /// <summary>
         /// Constructor. You may inject IServiceProvider to freely use you registered services in your modules
         /// </summary>
@@ -52,8 +60,10 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>
-        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool shouldUserAnswerOnQuestionsOnStart = false, List<string> questions = null)
+        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework",
+            bool shouldUserAnswerOnQuestionsOnStart = false, List<string> questions = null, bool needNewUserApproove = false)
         {
+            UserMustBeApprooved = needNewUserApproove;
             UserShouldGiveAnswers = shouldUserAnswerOnQuestionsOnStart;
             if (UserShouldGiveAnswers && questions != null && questions.Any())
             {
@@ -126,52 +136,59 @@ namespace TelegramBotFramework.Core
 
         private void GetMethodsFromAssembly(Assembly assembly)
         {
-            foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
-            && myType.IsDefined(typeof(TelegramBotModule)) /*|| myType.IsAssignableFrom(typeof(ITelegramBotModule))*/))
+            try
             {
-                var constructor = type.GetConstructor(new[] { this.GetType() });
-                if (constructor == null)
+                foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
+                   && myType.IsDefined(typeof(TelegramBotModule)) /*|| myType.IsAssignableFrom(typeof(ITelegramBotModule))*/))
                 {
-                    //Log.WriteLine($"Can not find constructor typeof {this.GetType().Name}, so this modules will not works", overrideColor: ConsoleColor.Cyan);
-                    //continue;
-                    constructor = type.GetConstructor(new[] { typeof(TelegramBotWrapper) });
-                }
-
-                var instance = constructor.Invoke(new object[] { this });
-                var meths = instance.GetType().GetMethods();
-                var tAtt = type.GetCustomAttributes<TelegramBotModule>().First();
-                if (Modules.ContainsKey(tAtt))
-                {
-                    Log.WriteLine($"{tAtt.Name} has been already loaded. Rename it, if it is no dublicate");
-                    continue;
-                }
-                Modules.Add(tAtt, type);
-
-                foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
-                {
-                    var att = method.GetCustomAttributes<ChatCommand>().First();
-                    if(Commands.ContainsKey(att))
+                    var constructor = type.GetConstructor(new[] { this.GetType() });
+                    if (constructor == null)
                     {
-                        Log.WriteLine($"ChatCommand {method.Name}\n\t  with Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)} not loaded, possible dublicate" , overrideColor: ConsoleColor.Cyan);
+                        //Log.WriteLine($"Can not find constructor typeof {this.GetType().Name}, so this modules will not works", overrideColor: ConsoleColor.Cyan);
+                        //continue;
+                        constructor = type.GetConstructor(new[] { typeof(TelegramBotWrapper) });
+                    }
+
+                    var instance = constructor.Invoke(new object[] { this });
+                    var meths = instance.GetType().GetMethods();
+                    var tAtt = type.GetCustomAttributes<TelegramBotModule>().First();
+                    if (Modules.ContainsKey(tAtt))
+                    {
+                        Log.WriteLine($"{tAtt.Name} has been already loaded. Rename it, if it is no dublicate");
                         continue;
                     }
-                    Commands.Add(att, (ChatCommandMethod)Delegate.CreateDelegate(typeof(ChatCommandMethod), instance, method));
-                    Log.WriteLine($"Loaded ChatCommand {method.Name}\n\t Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)}", overrideColor: ConsoleColor.Green);
+                    Modules.Add(tAtt, type);
 
-                }
-                foreach (var m in type.GetMethods().Where(x => x.IsDefined(typeof(CallbackCommand))))
-                {
-                    var att = m.GetCustomAttributes<CallbackCommand>().First();
-                    if (CallbackCommands.ContainsKey(att))
+                    foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
                     {
-                        Log.WriteLine($"Not loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}, possible dublicate", overrideColor: ConsoleColor.Cyan);
-                        continue;
+                        var att = method.GetCustomAttributes<ChatCommand>().First();
+                        if (Commands.ContainsKey(att))
+                        {
+                            Log.WriteLine($"ChatCommand {method.Name}\n\t  with Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)} not loaded, possible dublicate", overrideColor: ConsoleColor.Cyan);
+                            continue;
+                        }
+                        Commands.Add(att, (ChatCommandMethod)Delegate.CreateDelegate(typeof(ChatCommandMethod), instance, method));
+                        Log.WriteLine($"Loaded ChatCommand {method.Name}\n\t Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)}", overrideColor: ConsoleColor.Green);
+
                     }
-                    CallbackCommands.Add(att, (CallbackCommandMethod)Delegate.CreateDelegate(typeof(CallbackCommandMethod), instance, m));
-                    Log.WriteLine($"Loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}", overrideColor: ConsoleColor.Green);
+                    foreach (var m in type.GetMethods().Where(x => x.IsDefined(typeof(CallbackCommand))))
+                    {
+                        var att = m.GetCustomAttributes<CallbackCommand>().First();
+                        if (CallbackCommands.ContainsKey(att))
+                        {
+                            Log.WriteLine($"Not loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}, possible dublicate", overrideColor: ConsoleColor.Cyan);
+                            continue;
+                        }
+                        CallbackCommands.Add(att, (CallbackCommandMethod)Delegate.CreateDelegate(typeof(CallbackCommandMethod), instance, m));
+                        Log.WriteLine($"Loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}", overrideColor: ConsoleColor.Green);
+                    }
+
+
                 }
-
-
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(e.ToString(), LogLevel.Error,fileName:"error.log");
             }
         }
         private void MessengerOnMessageSent(object sender, EventArgs e)
@@ -231,36 +248,94 @@ namespace TelegramBotFramework.Core
             Questions.Clear();
             Questions.AddRange(questions);
         }
+        public virtual CommandResponse InitServey<T>(long userId) where T : class, new()
+        {
+            IsSurveyInitiated = true;
+            if (CurrentUserUpdatingObjects.ContainsKey(userId))
+            {
+                CurrentUserUpdatingObjects.Remove(userId);
+            }
+            CurrentUserUpdatingObjects.Add(userId, new T());
 
-        protected virtual CommandResponse SendQuestion(long userId)
+            var questions = typeof(T).GetProperties().Where(p => p.IsDefined(typeof(SurveyAttribute)));
+            List<SurveyAttribute> attributes = new List<SurveyAttribute>();
+            foreach (var t in questions)
+            {
+                var survey = t.GetCustomAttributes<SurveyAttribute>().First();
+                string allowedAnswers = "";
+                if (survey.Choises!=null&& survey.Choises.Any())
+                {
+                    allowedAnswers = $"*[Allowed values:{String.Join(",", survey.Choises)}]*\n";
+                }
+                survey.QuestionText = String.IsNullOrEmpty(survey.QuestionText) ? $"{allowedAnswers}Enter value of `{t.Name}`:" : survey.QuestionText;
+                survey.UpdatingPropertyName = t.Name;
+                attributes.Add(survey);
+            }
+            return SendQuestion(userId, attributes.ToList());
+        }
+        public virtual CommandResponse SendQuestion(long userId, List<SurveyAttribute> questions = null)
         {
             if (!UsersWaitingAnswers.ContainsKey(userId))
             {
-                var queue = new Queue<string>();
-                foreach (var q in Questions)
+                var queue = new Queue<SurveyAttribute>();
+                foreach (var q in questions)
                 {
                     queue.Enqueue(q);
                 }
-                UsersWaitingAnswers.TryAdd(userId, queue);
+                UsersWaitingAnswers.Add(userId, queue);
             }
             else
             {
                 if (UsersWaitingAnswers[userId].Count == 0)
                 {
                     AnswerHandling = false;
-                    Queue<string> t = new Queue<string>();
-                    UsersWaitingAnswers.TryRemove(userId, out t);
-                    return new CommandResponse("ok, thx for answers");
+                    OnSurveyComplete?.Invoke(userId);
+                    UsersWaitingAnswers.Remove(userId);
+                    return new CommandResponse("Thank you, your answers was saved");
                 }
                 //   return new CommandResponse("");
             }
             AnswerHandling = true;
-            return new CommandResponse($"Enter value of `{UsersWaitingAnswers[userId].Peek()}:`", parseMode: ParseMode.Markdown);
+            return new CommandResponse($"{UsersWaitingAnswers[userId].Peek().QuestionText}", parseMode: ParseMode.Markdown);
         }
-        protected virtual CommandResponse GetAnswer(long userId, string answer)
+        public virtual bool HandleResponse(Message message)
         {
-            UsersWaitingAnswers[userId].Dequeue();
-            return SendQuestion(userId);
+            try
+            {
+                var question = UsersWaitingAnswers[message.Chat.Id].Peek();
+                if (question.Choises.Any() && !question.Choises.Contains(message.Text.Trim()))
+                {
+                    Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `Submitted {message.Text} does not allowed value`", ParseMode.Markdown);
+                    return false;
+                }
+                PropertyInfo propertyInfo = CurrentUserUpdatingObjects[message.Chat.Id].GetType().GetProperty(question.UpdatingPropertyName);
+                propertyInfo.SetValue(CurrentUserUpdatingObjects[message.Chat.Id], Convert.ChangeType(message.Text, propertyInfo.PropertyType), null);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `{ex.Message}`", ParseMode.Markdown);
+                return false;
+            }
+        }
+        protected virtual CommandResponse GetAnswer(Message message)
+        {
+            Bot.SendChatActionAsync(message.Chat, ChatAction.Typing);
+            var question = UsersWaitingAnswers[message.Chat.Id].Peek();
+            if (HandleResponse(message))
+            {
+                UsersWaitingAnswers[message.Chat.Id].Dequeue();
+                Bot.DeleteMessageAsync(message.Chat, message.MessageId - 1);
+                Bot.DeleteMessageAsync(message.Chat, message.MessageId);
+                Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} accepted", ParseMode.Markdown);
+            }
+            else
+            {
+                Bot.DeleteMessageAsync(message.Chat, message.MessageId - 1);
+                Bot.DeleteMessageAsync(message.Chat, message.MessageId);
+                Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} was not accepted, try again, please", ParseMode.Markdown);
+            }
+            return SendQuestion(message.Chat.Id);
         }
         #endregion
         private void BotOnOnCallbackQuery(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
@@ -447,14 +522,36 @@ namespace TelegramBotFramework.Core
                     Log.WriteLine(chat, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
                     Log.WriteLine(msg, LogLevel.Info, ConsoleColor.White, "telegram.log");
 
-                    if (update.Message.Text == "/start" && UserShouldGiveAnswers && !AnswerHandling)
+                    if (UserMustBeApprooved)
                     {
-                        Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = SendQuestion(update.Message.Chat.Id) });
-                        return;
+                        if (!user.IsBotAdmin)
+                        {
+                            Bot.SendTextMessageAsync(update.Message.Chat, "You must be approved to use this bot, write to admin");
+                            return;
+                        }
                     }
-                    else if (AnswerHandling && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
+                    //if (!AnswerHandling && IsSurveyInitiated)
+                    //{
+                    //    if (UserMustBeApprooved)
+                    //    {
+                    //        if (!user.IsBotAdmin)
+                    //        {
+                    //            Bot.SendTextMessageAsync(update.Message.Chat, "You must be approved to use this bot, write to admin");
+                    //            return;
+                    //        }
+                    //    }
+                    //    Send(SendQuestion(update.Message.Chat.Id), update.Message, false);
+                    //    IsSurveyInitiated = false;
+                    //    //  Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = SendQuestion(update.Message.Chat.Id) });
+                    //    return;
+                    //}
+                    if (AnswerHandling && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
                     {
-                        Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = GetAnswer(update.Message.Chat.Id, update.Message.Text) });
+                        //  Send(GetAnswer(update.Message.Chat.Id, update.Message.Text), update.Message, true);
+
+                        //Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = GetAnswer(update.Message.Chat.Id, update.Message.Text) });
+                        Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = GetAnswer(update.Message) });
+
                         return;
                     }
 

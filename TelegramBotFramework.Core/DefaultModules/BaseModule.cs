@@ -1,14 +1,29 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using Telegram.Bot.Types.Enums;
 using TelegramBotFramework.Core;
+using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.Objects;
 
 namespace TelegramBotFramework.DefaultModules
 {
+    public class TestServey : IBotSurvey
+    {
+        [Survey( new string[] {"42","43"})]
+        public string Name { get; set; }
+        [Survey(QuestionText ="А тут булево значение")]
+        public bool BooleanValue { get; set; }
+        [Survey]
+        public decimal DecimalValue { get; set; }
+
+        // public event Action<TestServey> OnFillig;
+
+    }
+  
     [TelegramBotModule(Author = "ridicoulous", Name = "Base", Version = "1.0")]
     public class BaseModule : TelegramBotModuleBase<TelegramBotWrapper>
     {
@@ -16,11 +31,11 @@ namespace TelegramBotFramework.DefaultModules
         //{
 
         //}    
-        public BaseModule(TelegramBotWrapper wrapper):base(wrapper)
+        public BaseModule(TelegramBotWrapper wrapper) : base(wrapper)
         {
 
-        }      
-       
+        }
+        
 
         [ChatCommand(Triggers = new[] { "source" }, HelpText = "Gets the source code for this bot")]
         public CommandResponse GetSource(CommandEventArgs args)
@@ -29,9 +44,9 @@ namespace TelegramBotFramework.DefaultModules
                 "Donates are greatly appreciated:\n" +
                 "`3A1pFjyRu4eeGrZTMXWNp2LyEZbeUDLENN`\n" +
                 "`0x6fea7665684584884124c1867d7ec31b56c43373`\n" +
-                "Feel free to open the issues at GitHub", parseMode:ParseMode.Markdown);
+                "Feel free to open the issues at GitHub", parseMode: ParseMode.Markdown);
         }
-       
+
         [ChatCommand(Triggers = new[] { "modules" }, HelpText = "Show a list of modules currently loaded")]
         public CommandResponse GetModules(CommandEventArgs args)
         {
@@ -47,7 +62,7 @@ namespace TelegramBotFramework.DefaultModules
         }
 
         [CallbackCommand(Trigger = "i", HelpText = "Gets information on a module")]
-        public  CommandResponse GetCommands(CallbackEventArgs args)
+        public CommandResponse GetCommands(CallbackEventArgs args)
         {
             var sb = new StringBuilder();
             var m =
@@ -67,7 +82,7 @@ namespace TelegramBotFramework.DefaultModules
         }
 
         [CallbackCommand(Trigger = "c", HelpText = "Gets information on a command")]
-        public  CommandResponse GetCommandInfo(CallbackEventArgs args)
+        public CommandResponse GetCommandInfo(CallbackEventArgs args)
         {
             var sb = new StringBuilder();
             var c =
@@ -109,8 +124,8 @@ namespace TelegramBotFramework.DefaultModules
             //var module =
             //    BotWrapper.Modules.FirstOrDefault();
             //if (module.Key == null)
-               // return new CommandResponse($"{args.Parameters} module not found.");
-            foreach(var module in BotWrapper.Modules)
+            // return new CommandResponse($"{args.Parameters} module not found.");
+            foreach (var module in BotWrapper.Modules)
             {
                 sb.AppendLine($"*Module {module.Key.Name}:*");
                 foreach (var method in module.Value.GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
@@ -120,7 +135,7 @@ namespace TelegramBotFramework.DefaultModules
                         sb.AppendLine($"/{att.Triggers[0]} : {att.HelpText ?? method.Name}");
                 }
             }
-            
+
             return new CommandResponse(sb.ToString(), parseMode: ParseMode.Markdown);
         }
 
