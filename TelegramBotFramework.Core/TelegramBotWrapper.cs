@@ -31,12 +31,13 @@ namespace TelegramBotFramework.Core
         public bool AnswerHandling { get; set; }
         public UsersSurveys CurrentUserUpdatingObjects { get; set; } = new UsersSurveys();
         public delegate CommandResponse ChatCommandMethod(CommandEventArgs args);
+        public delegate CommandResponse ChatServeyMethod(Message args);
         public Dictionary<long, Queue<SurveyAttribute>> UsersWaitingAnswers { get; set; } = new Dictionary<long, Queue<SurveyAttribute>>();
+        public Dictionary<ChatSurvey, ChatServeyMethod> SurveyAnswersHandlers = new Dictionary<ChatSurvey, ChatServeyMethod>();
         public readonly List<string> Questions = new List<string>();
         public delegate CommandResponse CallbackCommandMethod(CallbackEventArgs args);
         public delegate void OnException(Exception unhandled);
         public event OnException ExceptionHappened;
-        public event Action<long> OnSurveyComplete;
 
         public Dictionary<ChatCommand, ChatCommandMethod> Commands = new Dictionary<ChatCommand, ChatCommandMethod>();
         public Dictionary<CallbackCommand, CallbackCommandMethod> CallbackCommands = new Dictionary<CallbackCommand, CallbackCommandMethod>();
@@ -45,11 +46,11 @@ namespace TelegramBotFramework.Core
         public TelegramBotDbContext Db;
         public TelegramBotSetting LoadedSetting;
         public ModuleMessenger Messenger = new ModuleMessenger();
-        public TelegramBotClient Bot;
+        public TelegramBotClient Bot { get; set; }
         internal static User Me = null;
         public IServiceProvider ServiceProvider;
-        private readonly bool UserShouldGiveAnswers;
-        public bool IsSurveyInitiated;
+
+        public bool IsSurveyInitiated { get; set; }
 
         private readonly bool UserMustBeApprooved;
 
@@ -60,15 +61,10 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>
-        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework",
-            bool shouldUserAnswerOnQuestionsOnStart = false, List<string> questions = null, bool needNewUserApproove = false)
+        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false)
         {
             UserMustBeApprooved = needNewUserApproove;
-            UserShouldGiveAnswers = shouldUserAnswerOnQuestionsOnStart;
-            if (UserShouldGiveAnswers && questions != null && questions.Any())
-            {
-                Questions.AddRange(questions);
-            }
+
             ServiceProvider = serviceProvider;
             using (var db = new TelegramBotDbContext(alias))
             {
@@ -138,14 +134,15 @@ namespace TelegramBotFramework.Core
         {
             try
             {
+                var typs = assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
+                   && myType.IsDefined(typeof(TelegramBotModule)));
                 foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
                    && myType.IsDefined(typeof(TelegramBotModule)) /*|| myType.IsAssignableFrom(typeof(ITelegramBotModule))*/))
                 {
+                   
                     var constructor = type.GetConstructor(new[] { this.GetType() });
                     if (constructor == null)
-                    {
-                        //Log.WriteLine($"Can not find constructor typeof {this.GetType().Name}, so this modules will not works", overrideColor: ConsoleColor.Cyan);
-                        //continue;
+                    {                        
                         constructor = type.GetConstructor(new[] { typeof(TelegramBotWrapper) });
                     }
 
@@ -159,6 +156,18 @@ namespace TelegramBotFramework.Core
                     }
                     Modules.Add(tAtt, type);
 
+                    foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatSurvey))))
+                    {
+                        var att = method.GetCustomAttributes<ChatSurvey>().First();
+                        if (SurveyAnswersHandlers.ContainsKey(att))
+                        {
+                            Log.WriteLine($"ChatSurvey {method.Name}\n\t  already added", overrideColor: ConsoleColor.Cyan);
+                            continue;
+                        }
+                        SurveyAnswersHandlers.Add(att, (ChatServeyMethod)Delegate.CreateDelegate(typeof(ChatServeyMethod), instance, method));
+                        Log.WriteLine($"Loaded SurveyAnswersHandler {method.Name}\n", overrideColor: ConsoleColor.Green);
+
+                    }
                     foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
                     {
                         var att = method.GetCustomAttributes<ChatCommand>().First();
@@ -188,7 +197,7 @@ namespace TelegramBotFramework.Core
             }
             catch (Exception e)
             {
-                Log.WriteLine(e.ToString(), LogLevel.Error,fileName:"error.log");
+                Log.WriteLine(e.ToString(), LogLevel.Error, fileName: "error.log");
             }
         }
         private void MessengerOnMessageSent(object sender, EventArgs e)
@@ -210,16 +219,7 @@ namespace TelegramBotFramework.Core
             Bot = new TelegramBotClient(LoadedSetting.TelegramBotAPIKey);
             try
             {
-                //Load in the modules
-                if (UserShouldGiveAnswers && !Questions.Any())
-                {
-                    Send(new MessageSentEventArgs()
-                    {
-                        Target = LoadedSetting.TelegramDefaultAdminUserId.ToString(),
-                        Response = new CommandResponse("Please, initialize instanse with list of questions to interact with user at start. I'll added default question")
-                    });
-                    Questions.Add("The Ultimate Question of Life, the Universe, and Everything?");
-                }
+                //Load in the modules              
                 LoadModules();
                 Bot.DeleteWebhookAsync();
                 Me = Bot.GetMeAsync().Result;
@@ -241,103 +241,7 @@ namespace TelegramBotFramework.Core
 
             Log.WriteLine("Connected to Telegram and listening..." + Me.FirstName + Me.LastName);
         }
-        #region Questions
 
-        protected void SetQuestions(List<string> questions)
-        {
-            Questions.Clear();
-            Questions.AddRange(questions);
-        }
-        public virtual CommandResponse InitServey<T>(long userId) where T : class, new()
-        {
-            IsSurveyInitiated = true;
-            if (CurrentUserUpdatingObjects.ContainsKey(userId))
-            {
-                CurrentUserUpdatingObjects.Remove(userId);
-            }
-            CurrentUserUpdatingObjects.Add(userId, new T());
-
-            var questions = typeof(T).GetProperties().Where(p => p.IsDefined(typeof(SurveyAttribute)));
-            List<SurveyAttribute> attributes = new List<SurveyAttribute>();
-            foreach (var t in questions)
-            {
-                var survey = t.GetCustomAttributes<SurveyAttribute>().First();
-                string allowedAnswers = "";
-                if (survey.Choises!=null&& survey.Choises.Any())
-                {
-                    allowedAnswers = $"*[Allowed values:{String.Join(",", survey.Choises)}]*\n";
-                }
-                survey.QuestionText = String.IsNullOrEmpty(survey.QuestionText) ? $"{allowedAnswers}Enter value of `{t.Name}`:" : survey.QuestionText;
-                survey.UpdatingPropertyName = t.Name;
-                attributes.Add(survey);
-            }
-            return SendQuestion(userId, attributes.ToList());
-        }
-        public virtual CommandResponse SendQuestion(long userId, List<SurveyAttribute> questions = null)
-        {
-            if (!UsersWaitingAnswers.ContainsKey(userId))
-            {
-                var queue = new Queue<SurveyAttribute>();
-                foreach (var q in questions)
-                {
-                    queue.Enqueue(q);
-                }
-                UsersWaitingAnswers.Add(userId, queue);
-            }
-            else
-            {
-                if (UsersWaitingAnswers[userId].Count == 0)
-                {
-                    AnswerHandling = false;
-                    OnSurveyComplete?.Invoke(userId);
-                    UsersWaitingAnswers.Remove(userId);
-                    return new CommandResponse("Thank you, your answers was saved");
-                }
-                //   return new CommandResponse("");
-            }
-            AnswerHandling = true;
-            return new CommandResponse($"{UsersWaitingAnswers[userId].Peek().QuestionText}", parseMode: ParseMode.Markdown);
-        }
-        public virtual bool HandleResponse(Message message)
-        {
-            try
-            {
-                var question = UsersWaitingAnswers[message.Chat.Id].Peek();
-                if (question.Choises.Any() && !question.Choises.Contains(message.Text.Trim()))
-                {
-                    Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `Submitted {message.Text} does not allowed value`", ParseMode.Markdown);
-                    return false;
-                }
-                PropertyInfo propertyInfo = CurrentUserUpdatingObjects[message.Chat.Id].GetType().GetProperty(question.UpdatingPropertyName);
-                propertyInfo.SetValue(CurrentUserUpdatingObjects[message.Chat.Id], Convert.ChangeType(message.Text, propertyInfo.PropertyType), null);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `{ex.Message}`", ParseMode.Markdown);
-                return false;
-            }
-        }
-        protected virtual CommandResponse GetAnswer(Message message)
-        {
-            Bot.SendChatActionAsync(message.Chat, ChatAction.Typing);
-            var question = UsersWaitingAnswers[message.Chat.Id].Peek();
-            if (HandleResponse(message))
-            {
-                UsersWaitingAnswers[message.Chat.Id].Dequeue();
-                Bot.DeleteMessageAsync(message.Chat, message.MessageId - 1);
-                Bot.DeleteMessageAsync(message.Chat, message.MessageId);
-                Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} accepted", ParseMode.Markdown);
-            }
-            else
-            {
-                Bot.DeleteMessageAsync(message.Chat, message.MessageId - 1);
-                Bot.DeleteMessageAsync(message.Chat, message.MessageId);
-                Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} was not accepted, try again, please", ParseMode.Markdown);
-            }
-            return SendQuestion(message.Chat.Id);
-        }
-        #endregion
         private void BotOnOnCallbackQuery(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
         {
             var query = callbackQueryEventArgs.CallbackQuery;
@@ -547,11 +451,33 @@ namespace TelegramBotFramework.Core
                     //}
                     if (AnswerHandling && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
                     {
+                        if (!SurveyAnswersHandlers.Any())
+                        {
+                            Send(new MessageSentEventArgs() { Target = LoadedSetting.TelegramDefaultAdminUserId.ToString(), Response = new CommandResponse("Here is any answer handlers") });
+                            return;
+                        }
                         //  Send(GetAnswer(update.Message.Chat.Id, update.Message.Text), update.Message, true);
 
                         //Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = GetAnswer(update.Message.Chat.Id, update.Message.Text) });
-                        Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = GetAnswer(update.Message) });
+                        //Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = GetAnswer(update.Message) });
+                        if (SurveyAnswersHandlers.Any(c => c.Key.Name == UsersWaitingAnswers[update.Message.Chat.Id].GetType().Name))
+                        {
+                            var customAnswerHandler = SurveyAnswersHandlers.FirstOrDefault(c => c.Key.Name == UsersWaitingAnswers[update.Message.Chat.Id].GetType().Name);
+                            var response = customAnswerHandler.Value.Invoke(update.Message);
+                            Send(response, update.Message);
+                        }
+                        else
+                        {
+                            var customAnswerHandler = SurveyAnswersHandlers.FirstOrDefault();
+                            var response = customAnswerHandler.Value.Invoke(update.Message);
+                            Send(response, update.Message);
+                        }
+                        //foreach (var answerHandler in SurveyAnswersHandlers)
+                        //{
+                        //    if (answerHandler.Key.Name == UsersWaitingAnswers[update.Message.Chat.Id].GetType().Name)
+                        //        answerHandler.Value.Invoke(update.Message);
 
+                        //}
                         return;
                     }
 

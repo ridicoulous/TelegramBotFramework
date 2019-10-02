@@ -19,7 +19,7 @@ namespace TelegramBotFramework.Core.Objects
         public string Version { get; set; }
         public bool IsModuleActive { get; set; }
     }
-    public abstract class TelegramBotModuleBase<T> :  ITelegramBotModule where T : ITelegramBotWrapper
+    public abstract class TelegramBotModuleBase<T> : ITelegramBotModule where T : ITelegramBotWrapper
     {
 
         public T BotWrapper;
@@ -31,21 +31,13 @@ namespace TelegramBotFramework.Core.Objects
         {
             BotWrapper = wrapper;
         }
-       
+
     }
-    //public abstract class TelegramBotModuleBase : ITelegramBotModule
-    //{
-    //   // protected TelegramBotWrapper BotWrapper;
-    //    public TelegramBotModuleBase()
-    //    {
-
-    //    }
-    //    //public TelegramBotModuleBase(TelegramBotWrapper wrapper)
-    //    //{
-    //    //    BotWrapper = wrapper;
-    //    //}
-
-    //}
+    [AttributeUsage(AttributeTargets.Method)]
+    public class ChatSurvey : Attribute
+    {
+        public string Name { get; set; }
+    }
 
     [AttributeUsage(AttributeTargets.Method)]
     public class ChatCommand : Attribute
