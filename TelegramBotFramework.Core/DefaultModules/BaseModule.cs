@@ -127,7 +127,7 @@ namespace TelegramBotFramework.DefaultModules
             // return new CommandResponse($"{args.Parameters} module not found.");
             foreach (var module in BotWrapper.Modules)
             {
-                sb.AppendLine($"*Module {module.Key.Name}:*");
+                //sb.AppendLine($"*Module {module.Key.Name}:*");
                 foreach (var method in module.Value.GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
                 {
                     var att = method.GetCustomAttributes<ChatCommand>().First();

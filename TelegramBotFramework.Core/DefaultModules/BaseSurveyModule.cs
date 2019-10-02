@@ -82,7 +82,7 @@ namespace TelegramBotFramework.Core.DefaultModules
                 var question = BotWrapper.UsersWaitingAnswers[message.Chat.Id].Peek();
                 if (question.Choises.Any() && !question.Choises.Contains(message.Text.Trim()))
                 {
-                    BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `Submitted {message.Text} does not allowed value`", ParseMode.Markdown);
+                    BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `Submitted {message.Text} is not allowed value`", ParseMode.Markdown).Wait();
                     return false;
                 }
                 PropertyInfo propertyInfo = BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id].GetType().GetProperty(question.UpdatingPropertyName);
@@ -91,7 +91,7 @@ namespace TelegramBotFramework.Core.DefaultModules
             }
             catch (Exception ex)
             {
-                BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `{ex.Message}`", ParseMode.Markdown);
+                BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `{ex.Message}`", ParseMode.Markdown).Wait();
                 return false;
             }
         }
@@ -105,13 +105,13 @@ namespace TelegramBotFramework.Core.DefaultModules
                 BotWrapper.UsersWaitingAnswers[message.Chat.Id].Dequeue();
                 BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId - 1).Wait();
                 BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId).Wait();
-                BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} accepted", ParseMode.Markdown);
+                BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} accepted", ParseMode.Markdown).Wait();
             }
             else
             {
                 BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId - 1).Wait();
                 BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId).Wait();
-                BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} was not accepted, try again, please", ParseMode.Markdown);
+                BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} was not accepted, try again, please", ParseMode.Markdown).Wait();
             }
             return SendQuestion(message.Chat.Id);
         }

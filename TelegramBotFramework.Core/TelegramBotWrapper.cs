@@ -14,6 +14,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
+using TelegramBotFramework.Core.DefaultModules;
 using TelegramBotFramework.Core.Helpers;
 using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.Logging;
@@ -134,21 +135,34 @@ namespace TelegramBotFramework.Core
         {
             try
             {
-                var typs = assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
-                   && myType.IsDefined(typeof(TelegramBotModule)));
+                //var typs = assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
+                //   && myType.IsDefined(typeof(TelegramBotModule)));
+                Log.WriteLine($"Loading {this.GetType().Name} bot");
                 foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
                    && myType.IsDefined(typeof(TelegramBotModule)) /*|| myType.IsAssignableFrom(typeof(ITelegramBotModule))*/))
                 {
-                   
+                    Log.WriteLine($"Loading {type.GetType().Name} module");
+
                     var constructor = type.GetConstructor(new[] { this.GetType() });
                     if (constructor == null)
-                    {                        
+                    {
                         constructor = type.GetConstructor(new[] { typeof(TelegramBotWrapper) });
                     }
-
+                    if (constructor == null)
+                    {
+                        constructor = type.GetConstructor(new[] { typeof(ITelegramBotWrapper) });
+                    }
+                    if (constructor == null)
+                    {
+                        var all = type.GetConstructors();
+                        Log.WriteLine($"Can not create instance of {type.GetType().Name}. Here is only {all.Length} ctors");
+                        continue;
+                    }
                     var instance = constructor.Invoke(new object[] { this });
+
                     var meths = instance.GetType().GetMethods();
-                    var tAtt = type.GetCustomAttributes<TelegramBotModule>().First();
+                    var tAtt = type.GetCustomAttributes<TelegramBotModule>().FirstOrDefault();
+
                     if (Modules.ContainsKey(tAtt))
                     {
                         Log.WriteLine($"{tAtt.Name} has been already loaded. Rename it, if it is no dublicate");
@@ -158,7 +172,7 @@ namespace TelegramBotFramework.Core
 
                     foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatSurvey))))
                     {
-                        var att = method.GetCustomAttributes<ChatSurvey>().First();
+                        var att = method.GetCustomAttributes<ChatSurvey>().FirstOrDefault();
                         if (SurveyAnswersHandlers.ContainsKey(att))
                         {
                             Log.WriteLine($"ChatSurvey {method.Name}\n\t  already added", overrideColor: ConsoleColor.Cyan);
@@ -191,8 +205,6 @@ namespace TelegramBotFramework.Core
                         CallbackCommands.Add(att, (CallbackCommandMethod)Delegate.CreateDelegate(typeof(CallbackCommandMethod), instance, m));
                         Log.WriteLine($"Loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}", overrideColor: ConsoleColor.Green);
                     }
-
-
                 }
             }
             catch (Exception e)
@@ -434,21 +446,7 @@ namespace TelegramBotFramework.Core
                             return;
                         }
                     }
-                    //if (!AnswerHandling && IsSurveyInitiated)
-                    //{
-                    //    if (UserMustBeApprooved)
-                    //    {
-                    //        if (!user.IsBotAdmin)
-                    //        {
-                    //            Bot.SendTextMessageAsync(update.Message.Chat, "You must be approved to use this bot, write to admin");
-                    //            return;
-                    //        }
-                    //    }
-                    //    Send(SendQuestion(update.Message.Chat.Id), update.Message, false);
-                    //    IsSurveyInitiated = false;
-                    //    //  Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = SendQuestion(update.Message.Chat.Id) });
-                    //    return;
-                    //}
+
                     if (AnswerHandling && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
                     {
                         if (!SurveyAnswersHandlers.Any())
@@ -456,10 +454,6 @@ namespace TelegramBotFramework.Core
                             Send(new MessageSentEventArgs() { Target = LoadedSetting.TelegramDefaultAdminUserId.ToString(), Response = new CommandResponse("Here is any answer handlers") });
                             return;
                         }
-                        //  Send(GetAnswer(update.Message.Chat.Id, update.Message.Text), update.Message, true);
-
-                        //Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = GetAnswer(update.Message.Chat.Id, update.Message.Text) });
-                        //Send(new MessageSentEventArgs() { Target = update.Message.Chat.Id.ToString(), Response = GetAnswer(update.Message) });
                         if (SurveyAnswersHandlers.Any(c => c.Key.Name == UsersWaitingAnswers[update.Message.Chat.Id].GetType().Name))
                         {
                             var customAnswerHandler = SurveyAnswersHandlers.FirstOrDefault(c => c.Key.Name == UsersWaitingAnswers[update.Message.Chat.Id].GetType().Name);
@@ -472,16 +466,8 @@ namespace TelegramBotFramework.Core
                             var response = customAnswerHandler.Value.Invoke(update.Message);
                             Send(response, update.Message);
                         }
-                        //foreach (var answerHandler in SurveyAnswersHandlers)
-                        //{
-                        //    if (answerHandler.Key.Name == UsersWaitingAnswers[update.Message.Chat.Id].GetType().Name)
-                        //        answerHandler.Value.Invoke(update.Message);
-
-                        //}
                         return;
                     }
-
-
                     if (update.Message.Text.StartsWith("!") || update.Message.Text.StartsWith("/"))
                     {
                         var args = GetParameters(update.Message.Text);
@@ -494,10 +480,8 @@ namespace TelegramBotFramework.Core
                                 if (att.DevOnly &&
                                     update.Message.From.Id != LoadedSetting.TelegramDefaultAdminUserId)
                                 {
-
                                     Send(new CommandResponse("You are not the developer!"), update);
                                     return;
-
                                 }
                                 if (att.BotAdminOnly & !user.IsBotAdmin & LoadedSetting.TelegramDefaultAdminUserId != update.Message.From.Id)
                                 {
@@ -635,7 +619,6 @@ namespace TelegramBotFramework.Core
                 //Environment.Exit(7);
             }
         }
-
         public InlineKeyboardMarkup CreateMarkupFromMenu(Menu menu)
         {
             if (menu == null) return null;
@@ -662,6 +645,27 @@ namespace TelegramBotFramework.Core
                 if (i == menu.Buttons.Count) break;
             }
             return new InlineKeyboardMarkup(final.ToArray());
+        }
+        public void SendMessageToAll(string message, bool onlyAdmins = false)
+        {
+            lock (this)
+            {
+                try
+                {
+                    var users = Db.Users.AsEnumerable();
+                    if (onlyAdmins)
+                        users = Db.Users.Where(c => c.IsBotAdmin);
+                    foreach (var user in users.ToList())
+                    {
+                        Send(new MessageSentEventArgs() { Response = new CommandResponse(message, ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = user.UserId.ToString() });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Send(new MessageSentEventArgs() { Response = new CommandResponse(message, ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = LoadedSetting.TelegramDefaultAdminUserId.ToString() });
+                    Send(new MessageSentEventArgs() { Response = new CommandResponse($"Failed with `{ex.ToString()}`", ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = LoadedSetting.TelegramDefaultAdminUserId.ToString() });
+                }
+            }
         }
     }
 }

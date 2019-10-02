@@ -74,7 +74,7 @@ namespace TelegramBotFramework.DefaultModules
 
         #region Chat Commands
 
-        [ChatCommand(Triggers = new[] { "addbotadmin", "addadmin" }, DevOnly = true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
+        [ChatCommand(Triggers = new[] { "addbotadmin", "addadmin" }, DevOnly = true, DontSearchInline =true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
         public CommandResponse AddBotAdmin(CommandEventArgs args)
         {
             var target = UserHelper.GetTarget(args);
@@ -86,7 +86,7 @@ namespace TelegramBotFramework.DefaultModules
             return new CommandResponse(null);
         }
 
-        [ChatCommand(Triggers = new[] { "rembotadmin", "remadmin" }, DevOnly = true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
+        [ChatCommand(Triggers = new[] { "rembotadmin", "remadmin" }, DevOnly = true, DontSearchInline = true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
         public CommandResponse RemoveBotAdmin(CommandEventArgs args)
         {
             var target = UserHelper.GetTarget(args);
@@ -97,7 +97,7 @@ namespace TelegramBotFramework.DefaultModules
             }
             return new CommandResponse(null);
         }
-        [ChatCommand(Triggers = new[] { "users" }, DevOnly = true)]
+        [ChatCommand(Triggers = new[] { "users" }, DevOnly = true, DontSearchInline = true)]
         public CommandResponse GetUsersList(CommandEventArgs args)
         {
             var sb = new StringBuilder();
