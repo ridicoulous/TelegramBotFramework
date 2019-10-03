@@ -4,11 +4,7 @@ using System.Text;
 using TelegramBotFramework.Core.Objects;
 
 namespace TelegramBotFramework.Core.Interfaces
-{
-    //public interface IBotSurvey<TSurvey>
-    //{
-    //   event Action<TSurvey> OnFillig;
-    //}
+{   
     public interface IBotSurvey
     {
        

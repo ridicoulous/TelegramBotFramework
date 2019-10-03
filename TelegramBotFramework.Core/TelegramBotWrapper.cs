@@ -137,32 +137,40 @@ namespace TelegramBotFramework.Core
             {
                 //var typs = assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
                 //   && myType.IsDefined(typeof(TelegramBotModule)));
-                Log.WriteLine($"Loading {this.GetType().Name} bot");
+               // Log.WriteLine($"Loading {this.GetType().Name} bot");
                 foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
                    && myType.IsDefined(typeof(TelegramBotModule)) /*|| myType.IsAssignableFrom(typeof(ITelegramBotModule))*/))
                 {
-                    Log.WriteLine($"Loading {type.GetType().Name} module");
 
+                    var tAtt = type.GetCustomAttributes<TelegramBotModule>().FirstOrDefault();
+                    if (tAtt.Name.Contains("Surv"))
+                    {
+
+                    }
+                    if (type.IsAssignableFrom(typeof(IBaseSurveyModule))|| type.IsAssignableFrom(typeof(BaseSurveyModule<,>)))
+                    {
+
+                    }
+                    Log.WriteLine($"Loading {type.GetType().Name} module");
+                    if(type.GetType().Name.Contains("RuntimeType"))
+                    {
+
+                    }
                     var constructor = type.GetConstructor(new[] { this.GetType() });
+                    //if (constructor == null)
+                    //{
+                    //    constructor = type.GetConstructor(new[] { typeof(TelegramBotWrapper) });
+                    //}
+                    //if (constructor == null)
+                    //{
+                    //    constructor = type.GetConstructor(new[] { typeof(ITelegramBotWrapper) });
+                    //}
                     if (constructor == null)
-                    {
-                        constructor = type.GetConstructor(new[] { typeof(TelegramBotWrapper) });
-                    }
-                    if (constructor == null)
-                    {
-                        constructor = type.GetConstructor(new[] { typeof(ITelegramBotWrapper) });
-                    }
-                    if (constructor == null)
-                    {
-                        var all = type.GetConstructors();
-                        Log.WriteLine($"Can not create instance of {type.GetType().Name}. Here is only {all.Length} ctors");
+                    {                       
+                        Log.WriteLine($"Can not create instance of {tAtt.Name}");
                         continue;
                     }
                     var instance = constructor.Invoke(new object[] { this });
-
-                    var meths = instance.GetType().GetMethods();
-                    var tAtt = type.GetCustomAttributes<TelegramBotModule>().FirstOrDefault();
-
                     if (Modules.ContainsKey(tAtt))
                     {
                         Log.WriteLine($"{tAtt.Name} has been already loaded. Rename it, if it is no dublicate");
@@ -170,9 +178,10 @@ namespace TelegramBotFramework.Core
                     }
                     Modules.Add(tAtt, type);
 
-                    foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatSurvey))))
+                    foreach (var method in instance.GetType().GetMethods(BindingFlags.NonPublic).Where(x => x.IsDefined(typeof(ChatSurvey))))
                     {
                         var att = method.GetCustomAttributes<ChatSurvey>().FirstOrDefault();
+                        var r = instance.GetType().GetInterfaces();
                         if (SurveyAnswersHandlers.ContainsKey(att))
                         {
                             Log.WriteLine($"ChatSurvey {method.Name}\n\t  already added", overrideColor: ConsoleColor.Cyan);
@@ -446,7 +455,6 @@ namespace TelegramBotFramework.Core
                             return;
                         }
                     }
-
                     if (AnswerHandling && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
                     {
                         if (!SurveyAnswersHandlers.Any())

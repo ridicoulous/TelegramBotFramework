@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -11,17 +13,18 @@ using TelegramBotFramework.DefaultModules;
 
 namespace TelegramBotFramework.Core.DefaultModules
 {
-    
-    public abstract class BaseSurveyModule<TSurvey, TBotWrapper> : TelegramBotModuleBase<TBotWrapper> where TBotWrapper : ITelegramBotWrapper where TSurvey : class, new()
+
+    public abstract class BaseSurveyModule<TSurvey, TBotWrapper> :
+        TelegramBotModuleBase<TBotWrapper>, IBaseSurveyModule<TSurvey> where TBotWrapper : ITelegramBotWrapper where TSurvey : class, new()
     {
         public BaseSurveyModule(TBotWrapper wrapper) : base(wrapper)
-        {         
-          
-        }
-        public virtual CommandResponse CreateSurvay(CommandEventArgs args)
         {
-            return InitServey<TSurvey>(args.SourceUser.UserId);
+
         }
+        //public virtual CommandResponse CreateSurvay(CommandEventArgs args)
+        //{
+        //    return InitServey<TSurvey>(args.SourceUser.UserId);
+        //}
         public abstract void SubmitSurvey(TSurvey survey);
 
         public virtual CommandResponse InitServey<T>(long userId) where T : class, new()
@@ -41,7 +44,11 @@ namespace TelegramBotFramework.Core.DefaultModules
                 string allowedAnswers = "";
                 if (survey.Choises != null && survey.Choises.Any())
                 {
-                    allowedAnswers = $"*[Allowed values:{String.Join(",", survey.Choises)}]*\n";
+                    allowedAnswers = $"*[Allowed:{String.Join(",", survey.Choises)}]*\n";
+                }
+                if (t.PropertyType == typeof(bool))
+                {
+                    allowedAnswers = $"*[Allowed:true,false]*\n";
                 }
                 survey.QuestionText = String.IsNullOrEmpty(survey.QuestionText) ? $"{allowedAnswers}Enter value of `{t.Name}`:" : survey.QuestionText;
                 survey.UpdatingPropertyName = t.Name;
@@ -86,7 +93,11 @@ namespace TelegramBotFramework.Core.DefaultModules
                     return false;
                 }
                 PropertyInfo propertyInfo = BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id].GetType().GetProperty(question.UpdatingPropertyName);
-                propertyInfo.SetValue(BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id], Convert.ChangeType(message.Text, propertyInfo.PropertyType), null);
+                if(propertyInfo.PropertyType==typeof(decimal)|| propertyInfo.PropertyType == typeof(double) || propertyInfo.PropertyType == typeof(float))
+                {
+                    message.Text = message.Text.Replace(",", ".");
+                }
+                propertyInfo.SetValue(BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id], Convert.ChangeType(message.Text, propertyInfo.PropertyType, CultureInfo.GetCultureInfo("en-US")), null);
                 return true;
             }
             catch (Exception ex)
@@ -95,7 +106,7 @@ namespace TelegramBotFramework.Core.DefaultModules
                 return false;
             }
         }
-        [ChatSurvey(Name ="DefaultAnswerHandler")]
+        [ChatSurvey(Name = "DefaultAnswerHandler")]
         public virtual CommandResponse GetAnswer(Message message)
         {
             BotWrapper.Bot.SendChatActionAsync(message.Chat, ChatAction.Typing);
