@@ -11,9 +11,9 @@
     <RepositoryUrl>https://github.com/ridicoulous/TelegramBotFramework</RepositoryUrl>
     <RepositoryType>GitHub</RepositoryType>
     <PackageTags>telegram telegram-bot bot-framework</PackageTags>
-    <AssemblyVersion>0.1.9.0</AssemblyVersion>
-    <FileVersion>0.1.9.0</FileVersion>
-    <Version>0.1.9</Version>
+    <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <FileVersion>0.2.0.0</FileVersion>
+    <Version>0.2</Version>
     <Copyright>ridicoulous</Copyright>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <PackageReleaseNotes>base dir</PackageReleaseNotes>

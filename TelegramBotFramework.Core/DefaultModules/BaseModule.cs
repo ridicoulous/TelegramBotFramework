@@ -37,7 +37,7 @@ namespace TelegramBotFramework.DefaultModules
         }
         
 
-        [ChatCommand(Triggers = new[] { "source" }, HelpText = "Gets the source code for this bot")]
+        [ChatCommand(Triggers = new[] { "source" }, DontSearchInline = true, HelpText = "Gets the source code for this bot")]
         public CommandResponse GetSource(CommandEventArgs args)
         {
             return new CommandResponse("https://github.com/ridicoulous/TelegramBotFramework\n" +
@@ -47,7 +47,7 @@ namespace TelegramBotFramework.DefaultModules
                 "Feel free to open the issues at GitHub", parseMode: ParseMode.Markdown);
         }
 
-        [ChatCommand(Triggers = new[] { "modules" }, HelpText = "Show a list of modules currently loaded")]
+        [ChatCommand(Triggers = new[] { "modules" }, DontSearchInline = true, HelpText = "Show a list of modules currently loaded")]
         public CommandResponse GetModules(CommandEventArgs args)
         {
             //var sb = new StringBuilder();
@@ -98,7 +98,7 @@ namespace TelegramBotFramework.DefaultModules
             return new CommandResponse(sb.ToString(), parseMode: ParseMode.Markdown);
         }
 
-        [ChatCommand(Triggers = new[] { "commands" }, HelpText = "commands <module name> - show all commands in the module", Parameters = new[] { "<module name>" })]
+        [ChatCommand(Triggers = new[] { "commands" }, HelpText = "commands <module name> - show all commands in the module", DontSearchInline =true, Parameters = new[] { "<module name>" })]
         public CommandResponse GetCommands(CommandEventArgs args)
         {
             var sb = new StringBuilder();
@@ -117,7 +117,7 @@ namespace TelegramBotFramework.DefaultModules
             return new CommandResponse(sb.ToString(), parseMode: ParseMode.Markdown);
         }
 
-        [ChatCommand(Triggers = new[] { "menu" }, HelpText = "Menue builded from all awailable")]
+        [ChatCommand(Triggers = new[] {"42", "menu" }, HelpText = "Menue builded from all awailable")]
         public CommandResponse GetCommandList(CommandEventArgs args)
         {
             var sb = new StringBuilder();
