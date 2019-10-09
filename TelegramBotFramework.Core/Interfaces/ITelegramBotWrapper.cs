@@ -16,6 +16,6 @@ namespace TelegramBotFramework.Core.Interfaces
         UsersSurveys CurrentUserUpdatingObjects { get; set; }
         bool IsSurveyInitiated { get; set; }
         TelegramBotClient Bot { get; set; }
-        void SendMessageToAll(string message, bool onlyAdmins = false);
+        void SendMessageToAll(string message, bool onlyAdmins = false, bool onlydev=true);
     }
 }

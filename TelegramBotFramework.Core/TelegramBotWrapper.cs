@@ -709,7 +709,7 @@ namespace TelegramBotFramework.Core
             }
             return new InlineKeyboardMarkup(final.ToArray());
         }
-        public void SendMessageToAll(string message, bool onlyAdmins = false)
+        public void SendMessageToAll(string message, bool onlyAdmins = false, bool onlydev=true)
         {
             lock (this)
             {
@@ -717,7 +717,9 @@ namespace TelegramBotFramework.Core
                 {
                     var users = Db.Users.AsEnumerable();
                     if (onlyAdmins)
-                        users = Db.Users.Where(c => c.IsBotAdmin);
+                        users = users.Where(c => c.IsBotAdmin);
+                    if (onlydev)
+                        users = users.Where(c => c.UserId == LoadedSetting.TelegramDefaultAdminUserId);
                     foreach (var user in users.ToList())
                     {
                         Send(new MessageSentEventArgs() { Response = new CommandResponse(message, ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = user.UserId.ToString() });
