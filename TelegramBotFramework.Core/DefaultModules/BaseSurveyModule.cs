@@ -20,11 +20,7 @@ namespace TelegramBotFramework.Core.DefaultModules
         public BaseSurveyModule(TBotWrapper wrapper) : base(wrapper)
         {
 
-        }
-        //public virtual CommandResponse CreateSurvay(CommandEventArgs args)
-        //{
-        //    return InitServey<TSurvey>(args.SourceUser.UserId);
-        //}
+        }       
         public abstract void SubmitSurvey(TSurvey survey);
 
         public virtual CommandResponse InitServey<T>(long userId) where T : class, new()

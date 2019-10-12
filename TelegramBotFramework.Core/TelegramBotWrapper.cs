@@ -180,10 +180,10 @@ namespace TelegramBotFramework.Core
                     }
                     Modules.Add(tAtt, type);
 
-                    foreach (var method in instance.GetType().GetMethods(BindingFlags.NonPublic).Where(x => x.IsDefined(typeof(ChatSurvey))))
+                    foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatSurvey))))
                     {
                         var att = method.GetCustomAttributes<ChatSurvey>().FirstOrDefault();
-                        var r = instance.GetType().GetInterfaces();
+                       
                         if (SurveyAnswersHandlers.ContainsKey(att))
                         {
                             Log.WriteLine($"ChatSurvey {method.Name}\n\t  already added", overrideColor: ConsoleColor.Cyan);
@@ -522,9 +522,9 @@ namespace TelegramBotFramework.Core
                             Send(new MessageSentEventArgs() { Target = LoadedSetting.TelegramDefaultAdminUserId.ToString(), Response = new CommandResponse("Here is any answer handlers") });
                             return;
                         }
-                        if (SurveyAnswersHandlers.Any(c => c.Key.Name == UsersWaitingAnswers[update.Message.Chat.Id].GetType().Name))
+                        if (SurveyAnswersHandlers.Any(c => c.Key.Name == CurrentUserUpdatingObjects[update.Message.Chat.Id].GetType().Name))
                         {
-                            var customAnswerHandler = SurveyAnswersHandlers.FirstOrDefault(c => c.Key.Name == UsersWaitingAnswers[update.Message.Chat.Id].GetType().Name);
+                            var customAnswerHandler = SurveyAnswersHandlers.FirstOrDefault(c => c.Key.Name == CurrentUserUpdatingObjects[update.Message.Chat.Id].GetType().Name);
                             var response = customAnswerHandler.Value.Invoke(update.Message);
                             Send(response, update.Message);
                         }
