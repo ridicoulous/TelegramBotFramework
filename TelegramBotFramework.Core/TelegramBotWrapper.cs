@@ -515,11 +515,11 @@ namespace TelegramBotFramework.Core
                             return;
                         }
                     }
-                    if (AnswerHandling && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
+                    if (AnswerHandling && UsersWaitingAnswers.ContainsKey(update.Message.Chat.Id) && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
                     {
                         if (!SurveyAnswersHandlers.Any())
                         {
-                            Send(new MessageSentEventArgs() { Target = LoadedSetting.TelegramDefaultAdminUserId.ToString(), Response = new CommandResponse("Here is any answer handlers") });
+                            Send(new MessageSentEventArgs() { Target = LoadedSetting.TelegramDefaultAdminUserId.ToString(), Response = new CommandResponse($"Here is any answer handlers for \n{JsonConvert.SerializeObject(UsersWaitingAnswers[update.Message.Chat.Id])}") });
                             return;
                         }
                         if (SurveyAnswersHandlers.Any(c => c.Key.Name == CurrentUserUpdatingObjects[update.Message.Chat.Id].GetType().Name))
