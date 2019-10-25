@@ -21,7 +21,7 @@ namespace TelegramBotFramework.Core.DefaultModules
         {
 
         }       
-        public abstract void SubmitSurvey(TSurvey survey);
+        public abstract void SubmitSurvey(long userId, TSurvey survey);
 
         public virtual CommandResponse InitServey<T>(long userId) where T : class, new()
         {
@@ -68,12 +68,11 @@ namespace TelegramBotFramework.Core.DefaultModules
                 if (BotWrapper.UsersWaitingAnswers[userId].Count == 0)
                 {
                     BotWrapper.AnswerHandling = false;
-                    //   OnSurveyComplete?.Invoke(userId);
-                    SubmitSurvey(BotWrapper.CurrentUserUpdatingObjects.GetValue<TSurvey>(userId));
+              
+                    SubmitSurvey(userId, BotWrapper.CurrentUserUpdatingObjects.GetValue<TSurvey>(userId));
                     BotWrapper.UsersWaitingAnswers.Remove(userId);
                     return new CommandResponse("Thank you, your answers was saved");
-                }
-                //   return new CommandResponse("");
+                }           
             }
             BotWrapper.AnswerHandling = true;
             var menu = BotWrapper.Create

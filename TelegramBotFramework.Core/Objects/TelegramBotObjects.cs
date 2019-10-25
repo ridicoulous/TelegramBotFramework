@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -21,18 +22,40 @@ namespace TelegramBotFramework.Core.Objects
     }
     public abstract class TelegramBotModuleBase<T> : ITelegramBotModule where T : ITelegramBotWrapper
     {
-
-        public T BotWrapper;
-        //public TelegramBotModuleBase()
-        //{
-
-        //}
+        public T BotWrapper;      
         public TelegramBotModuleBase(T wrapper)
         {
             BotWrapper = wrapper;
         }
 
+        public Menu CreateButtonsWithCallback(string action, List<string> names, int columns=1)
+        {
+            var menu = new Menu()
+            {
+                Columns = columns,
+                Buttons = names.Select(f => new InlineButton($"{action}: {f}", action, f.ToString())).ToList()
+            };
+            return menu;
+        }
+        public Menu CreateButtonsWithCallbacks(List<ButtonWithCallback> callbacks, int columns = 1)
+        {            
+            var menu = new Menu()
+            {
+                Columns = columns,
+                Buttons = callbacks.Select(f => new InlineButton($"{f.ButtonText}", f.CallbackActionTrigger, f.Parameters)).ToList()
+            };
+            return menu;
+        }
     }
+
+    public class ButtonWithCallback
+    {
+        public string ButtonText { get; set; }
+        public string CallbackActionTrigger { get; set; }
+        public string Parameters { get; set; }
+
+    }
+
     [AttributeUsage(AttributeTargets.Method)]
     public class ChatSurvey : Attribute
     {
