@@ -76,13 +76,14 @@ namespace TelegramBotFramework.Core.DefaultModules
                 //   return new CommandResponse("");
             }
             BotWrapper.AnswerHandling = true;
+            var menu = BotWrapper.Create
             return new CommandResponse($"{BotWrapper.UsersWaitingAnswers[userId].Peek().QuestionText}", parseMode: ParseMode.Markdown);
         }
         public virtual bool HandleResponse(Message message)
         {
             try
             {
-                var question = BotWrapper.UsersWaitingAnswers[message.Chat.Id].Peek();
+                var question = BotWrapper.UsersWaitingAnswers[message.Chat.Id].Peek();     
                 if (question.Choises.Any() && !question.Choises.Contains(message.Text.Trim()))
                 {
                     BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `Submitted {message.Text} is not allowed value`", ParseMode.Markdown).Wait();
