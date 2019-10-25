@@ -75,8 +75,12 @@ namespace TelegramBotFramework.Core.DefaultModules
                 }           
             }
             BotWrapper.AnswerHandling = true;
-            var menu = BotWrapper.Create
-            return new CommandResponse($"{BotWrapper.UsersWaitingAnswers[userId].Peek().QuestionText}", parseMode: ParseMode.Markdown);
+            Menu menu = null;
+            if(BotWrapper.UsersWaitingAnswers[userId].Peek().Choises.Any())
+            {
+                menu = CreateButtonsWithCallback("surveyanswerwighcallback", BotWrapper.UsersWaitingAnswers[userId].Peek().Choises);
+            }
+            return new CommandResponse($"{BotWrapper.UsersWaitingAnswers[userId].Peek().QuestionText}", menu:menu, parseMode: ParseMode.Markdown);
         }
         public virtual bool HandleResponse(Message message)
         {
