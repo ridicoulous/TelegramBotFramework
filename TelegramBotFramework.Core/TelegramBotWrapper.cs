@@ -287,6 +287,7 @@ namespace TelegramBotFramework.Core
             var trigger = query.Data.Split('|')[0];
             var args = query.Data.Replace(trigger + "|", "");
             var user = UserHelper.GetTelegramUser(Db, cbQuery: query);
+
             if (user.Grounded) return;
             Log.WriteLine(query.From.FirstName, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
             Log.WriteLine(query.Data, LogLevel.Info, ConsoleColor.White, "telegram.log");
@@ -524,6 +525,12 @@ namespace TelegramBotFramework.Core
                         }
                         if (SurveyAnswersHandlers.Any(c => c.Key.Name == CurrentUserUpdatingObjects[update.Message.Chat.Id].GetType().Name))
                         {
+                            if (update.Type == UpdateType.CallbackQuery&&String.IsNullOrEmpty(update.Message.Text))
+                            {
+                               var trigger = update.CallbackQuery.Data.Split('|')[0];
+                                var args = update.CallbackQuery.Data.Replace(trigger + "|", "");
+                                update.Message.Text = args;
+                            }
                             var customAnswerHandler = SurveyAnswersHandlers.FirstOrDefault(c => c.Key.Name == CurrentUserUpdatingObjects[update.Message.Chat.Id].GetType().Name);
                             var response = customAnswerHandler.Value.Invoke(update.Message);
                             Send(response, update.Message);
