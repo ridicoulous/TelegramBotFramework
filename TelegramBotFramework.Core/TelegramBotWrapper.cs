@@ -290,16 +290,7 @@ namespace TelegramBotFramework.Core
             var args = query.Data.Replace(trigger + "|", "");
             var user = UserHelper.GetTelegramUser(Db, cbQuery: query);
 
-            if (CurrentUserUpdatingObjects.ContainsKey(query.Message.Chat.Id))
-            {
-                query.Message.Text = args;
-                // query.Message.Type = MessageType.Text;
-                var h = SurveyAnswersHandlers.FirstOrDefault(c => c.Key.Name == CurrentUserUpdatingObjects[query.Message.Chat.Id].GetType().Name);
-
-                var customAnswerHandler = h.Value == null ? SurveyAnswersHandlers.FirstOrDefault() : h;
-                var response = customAnswerHandler.Value.Invoke(query.Message);
-                Send(response, query.Message);
-            }
+          
             //extract the trigger
 
 
@@ -326,6 +317,17 @@ namespace TelegramBotFramework.Core
                         Send(response, query.Message, true);
                     }
                 }
+            }
+            if (UsersWaitingAnswers.ContainsKey(query.Message.Chat.Id) && CurrentUserUpdatingObjects != null&&CurrentUserUpdatingObjects.ContainsKey(query.Message.Chat.Id) && AnswerHandling)
+            {
+                query.Message.Text = args;
+                // query.Message.Type = MessageType.Text;
+                var h = SurveyAnswersHandlers.FirstOrDefault(c => c.Key.Name == CurrentUserUpdatingObjects[query.Message.Chat.Id].GetType().Name);
+
+                var customAnswerHandler = h.Value == null ? SurveyAnswersHandlers.FirstOrDefault() : h;
+                var response = customAnswerHandler.Value.Invoke(query.Message);
+                Send(response, query.Message);
+                return;
             }
         }
 
