@@ -29,7 +29,7 @@ namespace TelegramBotFramework.Core
 {
     public class TelegramBotWrapper : ITelegramBotWrapper
     {
-        public static string RootDirectory { get;set;} = AppDomain.CurrentDomain.BaseDirectory;
+        public static string RootDirectory { get; set; } = AppDomain.CurrentDomain.BaseDirectory;
 
         public bool AnswerHandling { get; set; }
         public UsersSurveys CurrentUserUpdatingObjects { get; set; } = new UsersSurveys();
@@ -65,9 +65,9 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>
-        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir=null)
+        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = null)
         {
-            if(!String.IsNullOrEmpty(dir))
+            if (!String.IsNullOrEmpty(dir))
             {
                 RootDirectory = dir;
             }
@@ -257,7 +257,6 @@ namespace TelegramBotFramework.Core
                 Console.WriteLine(ex.ToString());
                 Log.WriteLine("502 bad gateway, restarting in 2 seconds", LogLevel.Error, fileName: "telegram.log");
                 Log.WriteLine(ex.ToString(), LogLevel.Error, fileName: "telegram.log");
-
                 Thread.Sleep(TimeSpan.FromSeconds(2));
 
             }
@@ -287,11 +286,22 @@ namespace TelegramBotFramework.Core
         private void BotOnOnCallbackQuery(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
         {
             var query = callbackQueryEventArgs.CallbackQuery;
-
-            //extract the trigger
             var trigger = query.Data.Split('|')[0];
             var args = query.Data.Replace(trigger + "|", "");
             var user = UserHelper.GetTelegramUser(Db, cbQuery: query);
+
+            if (CurrentUserUpdatingObjects.ContainsKey(query.Message.Chat.Id))
+            {
+                query.Message.Text = args;
+                // query.Message.Type = MessageType.Text;
+                var h = SurveyAnswersHandlers.FirstOrDefault(c => c.Key.Name == CurrentUserUpdatingObjects[query.Message.Chat.Id].GetType().Name);
+
+                var customAnswerHandler = h.Value == null ? SurveyAnswersHandlers.FirstOrDefault() : h;
+                var response = customAnswerHandler.Value.Invoke(query.Message);
+                Send(response, query.Message);
+            }
+            //extract the trigger
+
 
             if (user.Grounded) return;
             Log.WriteLine(query.From.FirstName, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
@@ -429,7 +439,7 @@ namespace TelegramBotFramework.Core
                     return;
                 }
                 if (update.Type == UpdateType.InlineQuery) return;
-                if (update.Type == UpdateType.CallbackQuery) return;
+                //if (update.Type == UpdateType.CallbackQuery) return;
 
                 if (!(update.Message?.Date > DateTime.UtcNow.AddSeconds(-15)))
                 {
@@ -755,7 +765,7 @@ namespace TelegramBotFramework.Core
         }
 
         public async Task SendMessageAsync(string message, long userId)
-        {            
+        {
             await Bot.SendTextMessageAsync(userId, message);
         }
     }

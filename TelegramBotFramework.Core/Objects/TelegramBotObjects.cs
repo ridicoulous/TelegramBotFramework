@@ -33,7 +33,7 @@ namespace TelegramBotFramework.Core.Objects
             var menu = new Menu()
             {
                 Columns = columns,
-                Buttons = names.Select(f => new InlineButton($"{action}: {f}", action, f.ToString())).ToList()
+                Buttons = names.Select(f => new InlineButton($"[{action}]: {f}", action, f.ToString())).ToList()
             };
             return menu;
         }

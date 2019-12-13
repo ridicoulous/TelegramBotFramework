@@ -37,16 +37,16 @@ namespace TelegramBotFramework.Core.DefaultModules
             foreach (var t in questions)
             {
                 var survey = t.GetCustomAttributes<SurveyAttribute>().First();
-                string allowedAnswers = "";
+                string allowedAnswers = "Enter";
                 if (survey.Choises != null && survey.Choises.Any())
                 {
-                    allowedAnswers = $"*[Allowed:{String.Join(",", survey.Choises)}]*\n";
+                    allowedAnswers = $"Choose";
                 }
-                if (t.PropertyType == typeof(bool))
-                {
-                    allowedAnswers = $"*[Allowed:true,false]*\n";
-                }
-                survey.QuestionText = String.IsNullOrEmpty(survey.QuestionText) ? $"{allowedAnswers}Enter value of `{t.Name}`:" : survey.QuestionText;
+                //if (t.PropertyType == typeof(bool))
+                //{
+                //    allowedAnswers = $"*[Allowed:true,false]*\n";
+                //}
+                survey.QuestionText = String.IsNullOrEmpty(survey.QuestionText) ? $"{allowedAnswers} value of `{t.Name}`:" : survey.QuestionText;
                 survey.UpdatingPropertyName = t.Name;
                 attributes.Add(survey);
             }
@@ -67,8 +67,7 @@ namespace TelegramBotFramework.Core.DefaultModules
             {
                 if (BotWrapper.UsersWaitingAnswers[userId].Count == 0)
                 {
-                    BotWrapper.AnswerHandling = false;
-              
+                    BotWrapper.AnswerHandling = false;              
                     SubmitSurvey(userId, BotWrapper.CurrentUserUpdatingObjects.GetValue<TSurvey>(userId));
                     BotWrapper.UsersWaitingAnswers.Remove(userId);
                     return new CommandResponse("Thank you, your answers was saved");
@@ -78,7 +77,7 @@ namespace TelegramBotFramework.Core.DefaultModules
             Menu menu = null;
             if(BotWrapper.UsersWaitingAnswers[userId].Peek().Choises.Any())
             {
-                menu = CreateButtonsWithCallback("surveyanswerwighcallback", BotWrapper.UsersWaitingAnswers[userId].Peek().Choises);
+                menu = CreateButtonsWithCallback("choose", BotWrapper.UsersWaitingAnswers[userId].Peek().Choises);
             }
             return new CommandResponse($"{BotWrapper.UsersWaitingAnswers[userId].Peek().QuestionText}", menu:menu, parseMode: ParseMode.Markdown);
         }

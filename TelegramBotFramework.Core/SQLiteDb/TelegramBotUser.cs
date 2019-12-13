@@ -62,6 +62,7 @@ namespace TelegramBotFramework.Core.SQLiteDb
         /// Is the user a bot admin?
         /// </summary>
         public bool IsBotAdmin { get; set; } = false;
+
         /// <summary>
         /// Not in use at this time.  If bot is expanded to other platforms, will be used to link accounts
         /// </summary>
