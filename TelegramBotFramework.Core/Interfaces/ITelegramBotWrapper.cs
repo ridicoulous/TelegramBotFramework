@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using Telegram.Bot;
 using TelegramBotFramework.Core.Objects;
 
@@ -17,5 +18,9 @@ namespace TelegramBotFramework.Core.Interfaces
         bool IsSurveyInitiated { get; set; }
         TelegramBotClient Bot { get; set; }
         void SendMessageToAll(string message, bool onlyAdmins = false, bool onlydev=true);
+        void SendMessage(string message, long userId);
+        Task SendMessageAsync(string message, long userId);
+
+
     }
 }

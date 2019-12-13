@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types;
@@ -28,7 +29,7 @@ namespace TelegramBotFramework.Core
 {
     public class TelegramBotWrapper : ITelegramBotWrapper
     {
-        public static string RootDirectory => AppDomain.CurrentDomain.BaseDirectory;
+        public static string RootDirectory { get;set;} = AppDomain.CurrentDomain.BaseDirectory;
 
         public bool AnswerHandling { get; set; }
         public UsersSurveys CurrentUserUpdatingObjects { get; set; } = new UsersSurveys();
@@ -64,8 +65,12 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>
-        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null)
+        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir=null)
         {
+            if(!String.IsNullOrEmpty(dir))
+            {
+                RootDirectory = dir;
+            }
             UserMustBeApprooved = needNewUserApproove;
             _paymentToken = paymentToken;
             ServiceProvider = serviceProvider;
@@ -183,7 +188,7 @@ namespace TelegramBotFramework.Core
                     foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatSurvey))))
                     {
                         var att = method.GetCustomAttributes<ChatSurvey>().FirstOrDefault();
-                       
+
                         if (SurveyAnswersHandlers.ContainsKey(att))
                         {
                             Log.WriteLine($"ChatSurvey {method.Name}\n\t  already added", overrideColor: ConsoleColor.Cyan);
@@ -465,9 +470,13 @@ namespace TelegramBotFramework.Core
                     payedInvoice.PaymentProviderId = update.Message.SuccessfulPayment.ProviderPaymentChargeId;
                     SendMessageToAll($"Payment received:\n{JsonConvert.SerializeObject(payedInvoice)}");
 
-                    Send(new MessageSentEventArgs() { Target = payedInvoice.UserId.ToString(), Response = new CommandResponse($"Your payment was received.\n" +
+                    Send(new MessageSentEventArgs()
+                    {
+                        Target = payedInvoice.UserId.ToString(),
+                        Response = new CommandResponse($"Your payment was received.\n" +
                         $"`Id: {payedInvoice.PaymentProviderId}`\n" +
-                        $"`Summ: {update.Message.SuccessfulPayment.TotalAmount/100} {payedInvoice.Currency}`",parseMode:ParseMode.Markdown) });
+                        $"`Summ: {update.Message.SuccessfulPayment.TotalAmount / 100} {payedInvoice.Currency}`", parseMode: ParseMode.Markdown)
+                    });
 
                     OnPaymentReceived?.Invoke(payedInvoice);
                     Thread.Sleep(400);
@@ -525,9 +534,9 @@ namespace TelegramBotFramework.Core
                         }
                         if (SurveyAnswersHandlers.Any(c => c.Key.Name == CurrentUserUpdatingObjects[update.Message.Chat.Id].GetType().Name))
                         {
-                            if (update.Type == UpdateType.CallbackQuery&&String.IsNullOrEmpty(update.Message.Text))
+                            if (update.Type == UpdateType.CallbackQuery && String.IsNullOrEmpty(update.Message.Text))
                             {
-                               var trigger = update.CallbackQuery.Data.Split('|')[0];
+                                var trigger = update.CallbackQuery.Data.Split('|')[0];
                                 var args = update.CallbackQuery.Data.Replace(trigger + "|", "");
                                 update.Message.Text = args;
                             }
@@ -682,8 +691,8 @@ namespace TelegramBotFramework.Core
                 //Bot.SendTextMessage(update.Message.Chat.Id, text);
                 return;
             }
-          
-            catch(Exception ex)
+
+            catch (Exception ex)
             {
 
                 Log.WriteLine(ex.ToString(), LogLevel.Error, null, "error.log");
@@ -716,7 +725,7 @@ namespace TelegramBotFramework.Core
             }
             return new InlineKeyboardMarkup(final.ToArray());
         }
-        public void SendMessageToAll(string message, bool onlyAdmins = false, bool onlydev=true)
+        public void SendMessageToAll(string message, bool onlyAdmins = false, bool onlydev = true)
         {
             lock (this)
             {
@@ -738,6 +747,16 @@ namespace TelegramBotFramework.Core
                     Send(new MessageSentEventArgs() { Response = new CommandResponse($"Failed with `{ex.ToString()}`", ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = LoadedSetting.TelegramDefaultAdminUserId.ToString() });
                 }
             }
+        }
+
+        public void SendMessage(string message, long userId)
+        {
+            Bot.SendTextMessageAsync(userId, message);
+        }
+
+        public async Task SendMessageAsync(string message, long userId)
+        {            
+            await Bot.SendTextMessageAsync(userId, message);
         }
     }
 }
