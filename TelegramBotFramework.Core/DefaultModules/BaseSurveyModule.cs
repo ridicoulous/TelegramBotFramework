@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -79,6 +80,7 @@ namespace TelegramBotFramework.Core.DefaultModules
             {
                 menu = CreateButtonsWithCallback("choose", BotWrapper.UsersWaitingAnswers[userId].Peek().Choises);
             }
+        
             return new CommandResponse($"{BotWrapper.UsersWaitingAnswers[userId].Peek().QuestionText}", menu:menu, parseMode: ParseMode.Markdown);
         }
         public virtual bool HandleResponse(Message message)
@@ -97,14 +99,33 @@ namespace TelegramBotFramework.Core.DefaultModules
                     message.Text = message.Text.Replace(",", ".");
                 }
                 propertyInfo.SetValue(BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id], Convert.ChangeType(message.Text, propertyInfo.PropertyType, CultureInfo.GetCultureInfo("en-US")), null);
+                if(LastAnswerMessageId.ContainsKey(message.Chat.Id))
+                {
+                    LastAnswerMessageId[message.Chat.Id] = message.MessageId;
+                }
+                else
+                {
+                    LastAnswerMessageId.TryAdd(message.Chat.Id, message.MessageId);
+                }
                 return true;
             }
             catch (Exception ex)
             {
                 BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `{ex.Message}`", ParseMode.Markdown).Wait();
+                if (LastAnswerMessageId.ContainsKey(message.Chat.Id))
+                {
+                    LastAnswerMessageId[message.Chat.Id] = message.MessageId;
+                }
+                else
+                {
+                    LastAnswerMessageId.TryAdd(message.Chat.Id, message.MessageId);
+                }
                 return false;
             }
         }
+        private ConcurrentDictionary<long, int> LastAnswerMessageId = new ConcurrentDictionary<long, int>();
+        private ConcurrentDictionary<long, int> LastQuestionMessageId = new ConcurrentDictionary<long, int>();
+
         [ChatSurvey(Name = "DefaultAnswerHandler")]
         public virtual CommandResponse GetAnswer(Message message)
         {
@@ -113,16 +134,21 @@ namespace TelegramBotFramework.Core.DefaultModules
             if (HandleResponse(message))
             {
                 BotWrapper.UsersWaitingAnswers[message.Chat.Id].Dequeue();
-                BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId - 1).Wait();
-                BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId).Wait();
+              //  BotWrapper.Bot.DeleteMessageAsync(message.Chat, LastAnswerMessageId[message.Chat.Id]).Wait();
+               // BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId).Wait();
                 BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} accepted", ParseMode.Markdown).Wait();
             }
             else
             {
-                BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId - 1).Wait();
-                BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId).Wait();
+                //BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId - 1).Wait();
+                //BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId).Wait();
                 BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} was not accepted, try again, please", ParseMode.Markdown).Wait();
             }
+            try
+            {
+                BotWrapper.Bot.DeleteMessageAsync(message.Chat, LastAnswerMessageId[message.Chat.Id]).Wait();
+            }
+            catch { }
             return SendQuestion(message.Chat.Id);
         }
     }
