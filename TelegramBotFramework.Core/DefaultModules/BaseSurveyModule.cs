@@ -98,8 +98,11 @@ namespace TelegramBotFramework.Core.DefaultModules
                 {
                     message.Text = message.Text.Replace(",", ".");
                 }
-                propertyInfo.SetValue(BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id], Convert.ChangeType(message.Text, propertyInfo.PropertyType, CultureInfo.GetCultureInfo("en-US")), null);
-                if(LastAnswerMessageId.ContainsKey(message.Chat.Id))
+                propertyInfo.SetValue(BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id], 
+                    Convert.ChangeType(message.Text, propertyInfo.PropertyType, CultureInfo.GetCultureInfo("en-US")), null);
+                var t = propertyInfo.GetValue(BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id]);
+
+                if (LastAnswerMessageId.ContainsKey(message.Chat.Id))
                 {
                     LastAnswerMessageId[message.Chat.Id] = message.MessageId;
                 }
