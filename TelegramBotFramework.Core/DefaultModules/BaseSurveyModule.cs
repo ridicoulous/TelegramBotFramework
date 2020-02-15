@@ -35,7 +35,7 @@ namespace TelegramBotFramework.Core.DefaultModules
 
             var questions = typeof(T).GetProperties().Where(p => p.IsDefined(typeof(SurveyAttribute)));
             List<SurveyAttribute> attributes = new List<SurveyAttribute>();
-            foreach (var t in questions)
+            foreach (var t in questions.OrderBy(c=>c.Name))
             {
                 var survey = t.GetCustomAttributes<SurveyAttribute>().First();
                 string allowedAnswers = "Enter";

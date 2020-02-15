@@ -460,13 +460,11 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
             TelegramBotUser result = null;
             if (!String.IsNullOrEmpty(username))
                 result = db.Users.FirstOrDefault(
-                    x =>
-                        String.Equals(x.UserName, username,
-                            StringComparison.InvariantCultureIgnoreCase));
+                    x => x.UserName.ToUpper() == username.ToUpper());
             else if (id != 0)
                 result = db.Users.FirstOrDefault(x => x.UserId == id);
             else
-                result = db.Users.FirstOrDefault(
+                result = db.Users.ToList().FirstOrDefault(
                         x =>
                             String.Equals(x.UserId.ToString(), args, StringComparison.InvariantCultureIgnoreCase) ||
                             String.Equals(x.UserName, args.Replace("@", ""), StringComparison.InvariantCultureIgnoreCase));
