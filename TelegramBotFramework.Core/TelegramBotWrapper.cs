@@ -71,20 +71,26 @@ namespace TelegramBotFramework.Core
             {
                 RootDirectory = dir;
             }
+      
             UserMustBeApprooved = needNewUserApproove;
             _paymentToken = paymentToken;
             ServiceProvider = serviceProvider;
-            using (var db = new TelegramBotDbContext(dir+alias))
+            if (!Directory.Exists(Path.Combine(RootDirectory)))
             {
+                Directory.CreateDirectory(Path.Combine(RootDirectory));
+            }
+            using (var db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias)))
+            {
+                
                 db.Database.EnsureCreated();
                 if (!db.Users.Any(c => c.UserId == adminId))
                 {
-                    db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId });
+                    db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId,FirstSeen=DateTime.UtcNow });
                     db.SaveChanges();
                 }
             }
             Log = new TelegramBotLogger(Path.Combine(RootDirectory, "Logs-" + alias));
-            Db = new TelegramBotDbContext(alias);
+            Db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias));
             var setting = new TelegramBotSetting() { Alias = alias, TelegramDefaultAdminUserId = adminId, TelegramBotAPIKey = key };
             LoadedSetting = setting;
             Console.OutputEncoding = Encoding.UTF8;

@@ -11,6 +11,7 @@ namespace TelegramBotFramework.Core.Helpers
     {
         public static TelegramBotUser GetTelegramUser(TelegramBotDbContext db, Update update = null, InlineQuery query = null, CallbackQuery cbQuery = null, bool logPoint = true)
         {
+            var users = db.Users.ToList();
             var from = update?.Message.From ?? query?.From ?? cbQuery?.From;
             if (from == null) return null;
             var u = db.Users.FirstOrDefault(x => x.UserId == from.Id) ?? new TelegramBotUser
