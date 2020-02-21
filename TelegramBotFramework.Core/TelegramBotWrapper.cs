@@ -65,7 +65,7 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>
-        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = null)
+        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = "")
         {
             if (!String.IsNullOrEmpty(dir))
             {
@@ -74,7 +74,7 @@ namespace TelegramBotFramework.Core
             UserMustBeApprooved = needNewUserApproove;
             _paymentToken = paymentToken;
             ServiceProvider = serviceProvider;
-            using (var db = new TelegramBotDbContext(alias))
+            using (var db = new TelegramBotDbContext(dir+alias))
             {
                 db.Database.EnsureCreated();
                 if (!db.Users.Any(c => c.UserId == adminId))
