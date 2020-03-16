@@ -214,6 +214,11 @@ namespace TelegramBotFramework.Core.Objects
 
     public class MessageSentEventArgs : EventArgs
     {
+        public MessageSentEventArgs(bool isSilent=false)
+        {
+            IsSilent = isSilent;
+        }
+        public bool IsSilent { get; set; } = false;
         public string Target { get; set; }
         public CommandResponse Response { get; set; }
     }
