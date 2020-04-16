@@ -65,26 +65,32 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>
-        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = null)
+        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = "")
         {
             if (!String.IsNullOrEmpty(dir))
             {
                 RootDirectory = dir;
             }
+      
             UserMustBeApprooved = needNewUserApproove;
             _paymentToken = paymentToken;
             ServiceProvider = serviceProvider;
-            using (var db = new TelegramBotDbContext(alias))
+            if (!Directory.Exists(Path.Combine(RootDirectory)))
             {
+                Directory.CreateDirectory(Path.Combine(RootDirectory));
+            }
+            using (var db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias)))
+            {
+                
                 db.Database.EnsureCreated();
                 if (!db.Users.Any(c => c.UserId == adminId))
                 {
-                    db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId });
+                    db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId,FirstSeen=DateTime.UtcNow });
                     db.SaveChanges();
                 }
             }
             Log = new TelegramBotLogger(Path.Combine(RootDirectory, "Logs-" + alias));
-            Db = new TelegramBotDbContext(alias);
+            Db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias));
             var setting = new TelegramBotSetting() { Alias = alias, TelegramDefaultAdminUserId = adminId, TelegramBotAPIKey = key };
             LoadedSetting = setting;
             Console.OutputEncoding = Encoding.UTF8;
@@ -680,7 +686,34 @@ namespace TelegramBotFramework.Core
             }
         }
 
+        public async Task SendAsync(MessageSentEventArgs args)
+        {
+            Log.WriteLine("Replying: " + args.Response.Text, overrideColor: ConsoleColor.Yellow);
+            var text = args.Response.Text;
+            try
+            {
+                if (text.StartsWith("/me"))
+                {
+                    text = text.Replace("/me", "*") + "*";
+                }
+                if (text.StartsWith("/"))
+                {
+                    text = text.Substring(1);
+                }
 
+                if (long.TryParse(args.Target, out var targetId))
+                {
+                   await Bot.SendTextMessageAsync(targetId, text, replyMarkup: CreateMarkupFromMenu(args.Response.Menu), parseMode: args.Response.ParseMode, disableNotification:args.IsSilent);
+                }
+               
+                return;
+            }
+
+            catch (Exception ex)
+            {
+                Log.WriteLine(ex.ToString(), LogLevel.Error, null, "error.log");
+            }
+        }
         public void Send(MessageSentEventArgs args)
         {
             Log.WriteLine("Replying: " + args.Response.Text, overrideColor: ConsoleColor.Yellow);
@@ -698,9 +731,8 @@ namespace TelegramBotFramework.Core
 
                 if (long.TryParse(args.Target, out var targetId))
                 {
-                    var r = Bot.SendTextMessageAsync(targetId, text, replyMarkup: CreateMarkupFromMenu(args.Response.Menu), parseMode: args.Response.ParseMode).Result;
+                    var r = Bot.SendTextMessageAsync(targetId, text, replyMarkup: CreateMarkupFromMenu(args.Response.Menu), parseMode: args.Response.ParseMode, disableNotification: args.IsSilent).Result;
                 }
-                //Bot.SendTextMessage(update.Message.Chat.Id, text);
                 return;
             }
 
@@ -737,7 +769,7 @@ namespace TelegramBotFramework.Core
             }
             return new InlineKeyboardMarkup(final.ToArray());
         }
-        public void SendMessageToAll(string message, bool onlyAdmins = false, bool onlydev = true)
+        public void SendMessageToAll(string message, bool onlyAdmins = false, bool onlydev = true, bool isSilent=false)
         {
             lock (this)
             {
@@ -750,7 +782,7 @@ namespace TelegramBotFramework.Core
                         users = users.Where(c => c.UserId == LoadedSetting.TelegramDefaultAdminUserId);
                     foreach (var user in users.ToList())
                     {
-                        Send(new MessageSentEventArgs() { Response = new CommandResponse(message, ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = user.UserId.ToString() });
+                        Send(new MessageSentEventArgs(isSilent) { Response = new CommandResponse(message, ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = user.UserId.ToString() });
                     }
                 }
                 catch (Exception ex)
@@ -761,14 +793,14 @@ namespace TelegramBotFramework.Core
             }
         }
 
-        public void SendMessage(string message, long userId)
+        public void SendMessage(string message, long userId, bool isSilent)
         {
-            Bot.SendTextMessageAsync(userId, message);
+            Bot.SendTextMessageAsync(userId, message, disableNotification: isSilent);
         }
 
-        public async Task SendMessageAsync(string message, long userId)
+        public async Task SendMessageAsync(string message, long userId, bool isSilent)
         {
-            await Bot.SendTextMessageAsync(userId, message);
+            await Bot.SendTextMessageAsync(userId, message, disableNotification: isSilent);
         }
     }
 }
