@@ -21,21 +21,21 @@ namespace TelegramBotFramework.Core.DefaultModules
         public BaseSurveyModule(TBotWrapper wrapper) : base(wrapper)
         {
 
-        }       
+        }
         public abstract void SubmitSurvey(long userId, TSurvey survey);
 
-        public virtual CommandResponse InitServey<T>(long userId) where T : class, new()
+        public virtual CommandResponse InitServey<T>(long userId, T instanse = null) where T : class, new()
         {
             BotWrapper.IsSurveyInitiated = true;
             if (BotWrapper.CurrentUserUpdatingObjects.ContainsKey(userId))
             {
                 BotWrapper.CurrentUserUpdatingObjects.Remove(userId);
             }
-            BotWrapper.CurrentUserUpdatingObjects.Add(userId, new T());
+            BotWrapper.CurrentUserUpdatingObjects.Add(userId, instanse ?? new T());
 
             var questions = typeof(T).GetProperties().Where(p => p.IsDefined(typeof(SurveyAttribute)));
             List<SurveyAttribute> attributes = new List<SurveyAttribute>();
-            foreach (var t in questions.OrderBy(c=>c.Name))
+            foreach (var t in questions.OrderBy(c => c.Name))
             {
                 var survey = t.GetCustomAttributes<SurveyAttribute>().First();
                 string allowedAnswers = "Enter";
@@ -43,10 +43,6 @@ namespace TelegramBotFramework.Core.DefaultModules
                 {
                     allowedAnswers = $"Choose";
                 }
-                //if (t.PropertyType == typeof(bool))
-                //{
-                //    allowedAnswers = $"*[Allowed:true,false]*\n";
-                //}
                 survey.QuestionText = String.IsNullOrEmpty(survey.QuestionText) ? $"{allowedAnswers} value of `{t.Name}`:" : survey.QuestionText;
                 survey.UpdatingPropertyName = t.Name;
                 attributes.Add(survey);
@@ -68,37 +64,37 @@ namespace TelegramBotFramework.Core.DefaultModules
             {
                 if (BotWrapper.UsersWaitingAnswers[userId].Count == 0)
                 {
-                    BotWrapper.AnswerHandling = false;              
+                    BotWrapper.AnswerHandling = false;
                     SubmitSurvey(userId, BotWrapper.CurrentUserUpdatingObjects.GetValue<TSurvey>(userId));
                     BotWrapper.UsersWaitingAnswers.Remove(userId);
                     return new CommandResponse("Thank you, your answers was saved");
-                }           
+                }
             }
             BotWrapper.AnswerHandling = true;
             Menu menu = null;
-            if(BotWrapper.UsersWaitingAnswers[userId].Peek().Choises.Any())
+            if (BotWrapper.UsersWaitingAnswers[userId].Peek().Choises.Any())
             {
                 menu = CreateButtonsWithCallback("choose", BotWrapper.UsersWaitingAnswers[userId].Peek().Choises);
             }
-        
-            return new CommandResponse($"{BotWrapper.UsersWaitingAnswers[userId].Peek().QuestionText}", menu:menu, parseMode: ParseMode.Markdown);
+
+            return new CommandResponse($"{BotWrapper.UsersWaitingAnswers[userId].Peek().QuestionText}", menu: menu, parseMode: ParseMode.Markdown);
         }
         public virtual bool HandleResponse(Message message)
         {
             try
             {
-                var question = BotWrapper.UsersWaitingAnswers[message.Chat.Id].Peek();     
+                var question = BotWrapper.UsersWaitingAnswers[message.Chat.Id].Peek();
                 if (question.Choises.Any() && !question.Choises.Contains(message.Text.Trim()))
                 {
                     BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `Submitted {message.Text} is not allowed value`", ParseMode.Markdown).Wait();
                     return false;
                 }
                 PropertyInfo propertyInfo = BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id].GetType().GetProperty(question.UpdatingPropertyName);
-                if(propertyInfo.PropertyType==typeof(decimal)|| propertyInfo.PropertyType == typeof(double) || propertyInfo.PropertyType == typeof(float))
+                if (propertyInfo.PropertyType == typeof(decimal) || propertyInfo.PropertyType == typeof(double) || propertyInfo.PropertyType == typeof(float))
                 {
                     message.Text = message.Text.Replace(",", ".");
                 }
-                propertyInfo.SetValue(BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id], 
+                propertyInfo.SetValue(BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id],
                     Convert.ChangeType(message.Text, propertyInfo.PropertyType, CultureInfo.GetCultureInfo("en-US")), null);
                 var t = propertyInfo.GetValue(BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id]);
 
@@ -137,8 +133,8 @@ namespace TelegramBotFramework.Core.DefaultModules
             if (HandleResponse(message))
             {
                 BotWrapper.UsersWaitingAnswers[message.Chat.Id].Dequeue();
-              //  BotWrapper.Bot.DeleteMessageAsync(message.Chat, LastAnswerMessageId[message.Chat.Id]).Wait();
-               // BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId).Wait();
+                //  BotWrapper.Bot.DeleteMessageAsync(message.Chat, LastAnswerMessageId[message.Chat.Id]).Wait();
+                // BotWrapper.Bot.DeleteMessageAsync(message.Chat, message.MessageId).Wait();
                 BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} accepted", ParseMode.Markdown).Wait();
             }
             else

@@ -50,7 +50,7 @@ namespace TelegramBotFramework.Core
         public TelegramBotDbContext Db;
         public TelegramBotSetting LoadedSetting;
         public ModuleMessenger Messenger = new ModuleMessenger();
-        public TelegramBotClient Bot { get; set; }
+        public TelegramBotClient Bot { get; private set; }
         internal static User Me = null;
         public IServiceProvider ServiceProvider;
 

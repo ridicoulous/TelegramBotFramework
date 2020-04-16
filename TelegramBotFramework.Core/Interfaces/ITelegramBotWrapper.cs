@@ -16,7 +16,7 @@ namespace TelegramBotFramework.Core.Interfaces
         Dictionary<long, Queue<SurveyAttribute>> UsersWaitingAnswers { get; set; }
         UsersSurveys CurrentUserUpdatingObjects { get; set; }
         bool IsSurveyInitiated { get; set; }
-        TelegramBotClient Bot { get; set; }
+        TelegramBotClient Bot { get;  }
         void SendMessageToAll(string message, bool onlyAdmins = false, bool onlydev=true);
         void SendMessage(string message, long userId);
         Task SendMessageAsync(string message, long userId);
