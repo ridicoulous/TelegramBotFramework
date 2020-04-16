@@ -8,7 +8,7 @@ namespace TelegramBotFramework.Core.Interfaces
 {
     public interface IBaseSurveyModule<TSurvey> : IBaseSurveyModule where TSurvey : class, new()
     {
-        CommandResponse InitServey<T>(long userId) where T : class, new(); 
+        CommandResponse InitServey<T>(long userId, T instanse=null) where T : class, new(); 
         void SubmitSurvey(long userId, TSurvey survey);
     }
     public interface IBaseSurveyModule
