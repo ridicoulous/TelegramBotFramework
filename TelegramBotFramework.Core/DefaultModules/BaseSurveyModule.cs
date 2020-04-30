@@ -128,6 +128,10 @@ namespace TelegramBotFramework.Core.DefaultModules
         [ChatSurvey(Name = "DefaultAnswerHandler")]
         public virtual CommandResponse GetAnswer(Message message)
         {
+            if (message.From.IsBot)
+            {
+                return new CommandResponse("");
+            }
             BotWrapper.Bot.SendChatActionAsync(message.Chat, ChatAction.Typing);
             var question = BotWrapper.UsersWaitingAnswers[message.Chat.Id].Peek();
             if (HandleResponse(message))
