@@ -9,8 +9,7 @@ namespace TelegramBotFramework.Core.Interfaces
 {
     public interface ITelegramBotWrapper
     {
-        void Run();
-        bool AnswerHandling { get; set; } 
+        void Run();  
         Dictionary<long, Queue<SurveyAttribute>> UsersWaitingAnswers { get; set; }
         UsersSurveys CurrentUserUpdatingObjects { get; set; }
         bool IsSurveyInitiated { get; set; }
