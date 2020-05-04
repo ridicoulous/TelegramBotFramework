@@ -135,10 +135,10 @@ namespace TelegramBotFramework.Core.DefaultModules
         {           
             BotWrapper.Bot.SendChatActionAsync(message.Chat, ChatAction.Typing);
             Thread.Sleep(300);
-            if (message.Chat.Id != message.From.Id && message.From.IsBot)
-            {
-                return AbortSurvey(message.Chat.Id, $"looks like message ({message.Text}) was recieved from bot: {message.From.Id}!={message.Chat.Id }");
-            }
+            //if (message.Chat.Id != message.From.Id && message.From.IsBot)
+            //{
+            //    return AbortSurvey(message.Chat.Id, $"looks like message ({message.Text}) was recieved from bot: {message.From.Id}!={message.Chat.Id }");
+            //}
             if (message.Text.StartsWith('/'))
             {
                 return AbortSurvey(message.Chat.Id);
