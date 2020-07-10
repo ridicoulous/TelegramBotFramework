@@ -29,13 +29,14 @@ All what you have to do:
         [ChatCommand(Triggers = new[] { "start" }, HideFromInline = true, DontSearchInline = true)]
         public CommandResponse Start(CommandEventArgs args)
         {
-            return new CommandResponse($"*Hello world*", parseMode: ParseMode.Markdown);
+            return new CommandResponse($"*Hello world:*", parseMode: ParseMode.Markdown);
         }
     }
 ````
 And instatiate `TelegramBotWrapper` with your key from [BotFather](tg://@BotFather) and your telegram id from @useridbot
 ````C#
   var wrapper = new TelegramBotWrapper("12345:AAAAAAAAAAAAAAAbbbbxccccccc", 424242, "NewBotConfigAlias");
+  wrapper.Run();
 ````
 Also you can use it through dependency injection in your `Startup.cs`:
 ````C#
