@@ -57,6 +57,7 @@ namespace TelegramBotFramework.Core
         public bool IsSurveyInitiated { get; set; }
         private readonly string _paymentToken;
         private readonly bool UserMustBeApprooved;
+        private readonly string _webHookUrl;
 
         /// <summary>
         /// Constructor. You may inject IServiceProvider to freely use you registered services in your modules
@@ -65,13 +66,17 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>
-        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = "")
+        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = "", string webHookUrl = null)
         {
+            if (!String.IsNullOrEmpty(webHookUrl))
+            {
+                _webHookUrl = webHookUrl;
+            }
             if (!String.IsNullOrEmpty(dir))
             {
                 RootDirectory = dir;
             }
-      
+
             UserMustBeApprooved = needNewUserApproove;
             _paymentToken = paymentToken;
             ServiceProvider = serviceProvider;
@@ -81,11 +86,11 @@ namespace TelegramBotFramework.Core
             }
             using (var db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias)))
             {
-                
+
                 db.Database.EnsureCreated();
                 if (!db.Users.Any(c => c.UserId == adminId))
                 {
-                    db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId,FirstSeen=DateTime.UtcNow });
+                    db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId, FirstSeen = DateTime.UtcNow });
                     db.SaveChanges();
                 }
             }
@@ -169,15 +174,7 @@ namespace TelegramBotFramework.Core
                     {
 
                     }
-                    var constructor = type.GetConstructor(new[] { this.GetType() });
-                    //if (constructor == null)
-                    //{
-                    //    constructor = type.GetConstructor(new[] { typeof(TelegramBotWrapper) });
-                    //}
-                    //if (constructor == null)
-                    //{
-                    //    constructor = type.GetConstructor(new[] { typeof(ITelegramBotWrapper) });
-                    //}
+                    var constructor = type.GetConstructor(new[] { this.GetType() });              
                     if (constructor == null)
                     {
                         Log.WriteLine($"Can not create instance of {tAtt.Name}");
@@ -255,7 +252,21 @@ namespace TelegramBotFramework.Core
             {
                 //Load in the modules              
                 LoadModules();
-                Bot.DeleteWebhookAsync();
+                if(String.IsNullOrEmpty(_webHookUrl))
+                {
+                    Bot.DeleteWebhookAsync();
+                    Bot.OnUpdate += BotOnUpdateReceived;
+                    Bot.OnInlineQuery += BotOnOnInlineQuery;
+                    Bot.OnCallbackQuery += BotOnOnCallbackQuery;
+                    Bot.OnReceiveError += Bot_OnReceiveError;
+                    Bot.OnReceiveGeneralError += Bot_OnReceiveGeneralError;
+                    Bot.StartReceiving();
+                }
+                else
+                {
+                    var uri = new Uri(_webHookUrl);
+                    Bot.SetWebhookAsync(_webHookUrl);
+                }
                 Me = Bot.GetMeAsync().Result;
             }
             catch (Exception ex)
@@ -266,12 +277,7 @@ namespace TelegramBotFramework.Core
                 Thread.Sleep(TimeSpan.FromSeconds(2));
 
             }
-            Bot.OnUpdate += BotOnUpdateReceived;
-            Bot.OnInlineQuery += BotOnOnInlineQuery;
-            Bot.OnCallbackQuery += BotOnOnCallbackQuery;
-            Bot.OnReceiveError += Bot_OnReceiveError;
-            Bot.OnReceiveGeneralError += Bot_OnReceiveGeneralError;
-            Bot.StartReceiving();
+           
 
             Log.WriteLine("Connected to Telegram and listening..." + Me.FirstName + Me.LastName);
         }
@@ -296,7 +302,7 @@ namespace TelegramBotFramework.Core
             var args = query.Data.Replace(trigger + "|", "");
             var user = UserHelper.GetTelegramUser(Db, cbQuery: query);
 
-          
+
             //extract the trigger
 
 
@@ -324,7 +330,7 @@ namespace TelegramBotFramework.Core
                     }
                 }
             }
-            if (UsersWaitingAnswers.ContainsKey(query.Message.Chat.Id) && CurrentUserUpdatingObjects != null&&CurrentUserUpdatingObjects.ContainsKey(query.Message.Chat.Id) && AnswerHandling)
+            if (UsersWaitingAnswers.ContainsKey(query.Message.Chat.Id) && CurrentUserUpdatingObjects != null && CurrentUserUpdatingObjects.ContainsKey(query.Message.Chat.Id) && AnswerHandling)
             {
                 query.Message.Text = args;
                 // query.Message.Type = MessageType.Text;
@@ -434,6 +440,36 @@ namespace TelegramBotFramework.Core
                 Console.WriteLine(e.Message);
             }
 
+        }
+        public virtual void OnWebHookUpdate(Update update)
+        {
+            try
+            {
+                if (update.Type == UpdateType.PreCheckoutQuery || update.Message?.SuccessfulPayment != null)
+                {
+                    new Thread(() => HandlePreCheckout(update)).Start();
+                    return;
+                }
+                if (update.Type == UpdateType.InlineQuery) return;
+
+                if (!(update.Message?.Date > DateTime.UtcNow.AddSeconds(-15)))
+                {
+                    return;
+                }
+                new Thread(() => Handle(update)).Start();
+            }
+            catch (Exception e)
+            {
+                while (e.InnerException != null)
+                    e = e.InnerException;
+                var message = e.GetType() + " - " + e.Message;
+                if (e is FileNotFoundException)
+                    message += " file: " + ((FileNotFoundException)e).FileName;
+                //else if (e is DirectoryNotFoundException)
+                //    message += " file: " + ((DirectoryNotFoundException)e).;
+                message += Environment.NewLine + e.StackTrace;
+                Log.WriteLine($"Error in message handling: {message}", LogLevel.Error, fileName: "telegram.log");
+            }
         }
         private void BotOnUpdateReceived(object sender, UpdateEventArgs updateEventArgs)
         {
@@ -703,9 +739,9 @@ namespace TelegramBotFramework.Core
 
                 if (long.TryParse(args.Target, out var targetId))
                 {
-                   await Bot.SendTextMessageAsync(targetId, text, replyMarkup: CreateMarkupFromMenu(args.Response.Menu), parseMode: args.Response.ParseMode, disableNotification:args.IsSilent);
+                    await Bot.SendTextMessageAsync(targetId, text, replyMarkup: CreateMarkupFromMenu(args.Response.Menu), parseMode: args.Response.ParseMode, disableNotification: args.IsSilent);
                 }
-               
+
                 return;
             }
 
@@ -769,7 +805,7 @@ namespace TelegramBotFramework.Core
             }
             return new InlineKeyboardMarkup(final.ToArray());
         }
-        public void SendMessageToAll(string message, bool onlyAdmins = false, bool onlydev = true, bool isSilent=false)
+        public void SendMessageToAll(string message, bool onlyAdmins = false, bool onlydev = true, bool isSilent = false)
         {
             lock (this)
             {
