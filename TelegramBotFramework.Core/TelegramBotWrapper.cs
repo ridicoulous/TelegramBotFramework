@@ -31,7 +31,6 @@ namespace TelegramBotFramework.Core
     {
         public static string RootDirectory { get; set; } = AppDomain.CurrentDomain.BaseDirectory;
 
-        public bool AnswerHandling { get; set; }
         public UsersSurveys CurrentUserUpdatingObjects { get; set; } = new UsersSurveys();
         public delegate CommandResponse ChatCommandMethod(CommandEventArgs args);
         public delegate CommandResponse ChatServeyMethod(Message args);
@@ -330,7 +329,7 @@ namespace TelegramBotFramework.Core
                     }
                 }
             }
-            if (UsersWaitingAnswers.ContainsKey(query.Message.Chat.Id) && CurrentUserUpdatingObjects != null && CurrentUserUpdatingObjects.ContainsKey(query.Message.Chat.Id) && AnswerHandling)
+            if (UsersWaitingAnswers.ContainsKey(query.Message.Chat.Id) && CurrentUserUpdatingObjects != null&&CurrentUserUpdatingObjects.ContainsKey(query.Message.Chat.Id))
             {
                 query.Message.Text = args;
                 // query.Message.Type = MessageType.Text;
@@ -579,7 +578,7 @@ namespace TelegramBotFramework.Core
                             return;
                         }
                     }
-                    if (AnswerHandling && UsersWaitingAnswers.ContainsKey(update.Message.Chat.Id) && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
+                    if (UsersWaitingAnswers.ContainsKey(update.Message.Chat.Id) && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
                     {
                         if (!SurveyAnswersHandlers.Any())
                         {
