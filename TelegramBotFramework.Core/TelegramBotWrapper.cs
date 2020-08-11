@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -173,7 +174,7 @@ namespace TelegramBotFramework.Core
                     {
 
                     }
-                    var constructor = type.GetConstructor(new[] { this.GetType() });              
+                    var constructor = type.GetConstructor(new[] { this.GetType() });
                     if (constructor == null)
                     {
                         Log.WriteLine($"Can not create instance of {tAtt.Name}");
@@ -251,7 +252,7 @@ namespace TelegramBotFramework.Core
             {
                 //Load in the modules              
                 LoadModules();
-                if(String.IsNullOrEmpty(_webHookUrl))
+                if (String.IsNullOrEmpty(_webHookUrl))
                 {
                     Bot.DeleteWebhookAsync();
                     Bot.OnUpdate += BotOnUpdateReceived;
@@ -276,7 +277,7 @@ namespace TelegramBotFramework.Core
                 Thread.Sleep(TimeSpan.FromSeconds(2));
 
             }
-           
+
 
             Log.WriteLine("Connected to Telegram and listening..." + Me.FirstName + Me.LastName);
         }
@@ -294,8 +295,55 @@ namespace TelegramBotFramework.Core
             SendMessageToAll(e.ApiRequestException.Message);
         }
 
+        private void BotOnOnCallbackQuery(object sender, CallbackQuery query)
+        {
+            var trigger = query.Data.Split('|')[0];
+            var args = query.Data.Replace(trigger + "|", "");
+            var user = UserHelper.GetTelegramUser(Db, cbQuery: query);
+
+
+            //extract the trigger
+
+
+            if (user.Grounded) return;
+            Log.WriteLine(query.From.FirstName, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
+            Log.WriteLine(query.Data, LogLevel.Info, ConsoleColor.White, "telegram.log");
+            foreach (var callback in CallbackCommands)
+            {
+                if (String.Equals(callback.Key.Trigger, trigger, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    var eArgs = new CallbackEventArgs()
+                    {
+                        SourceUser = user,
+                        DatabaseInstance = Db,
+                        Parameters = args,
+                        Target = query.Message.Chat.Id.ToString(),
+                        Messenger = Messenger,
+                        Bot = Bot,
+                        Query = query
+                    };
+                    var response = callback.Value.Invoke(eArgs);
+                    if (!String.IsNullOrWhiteSpace(response?.Text))
+                    {
+                        Send(response, query.Message, true);
+                    }
+                }
+            }
+            if (UsersWaitingAnswers.ContainsKey(query.Message.Chat.Id) && CurrentUserUpdatingObjects != null && CurrentUserUpdatingObjects.ContainsKey(query.Message.Chat.Id))
+            {
+                query.Message.Text = args;
+                // query.Message.Type = MessageType.Text;
+                var h = SurveyAnswersHandlers.FirstOrDefault(c => c.Key.Name == CurrentUserUpdatingObjects[query.Message.Chat.Id].GetType().Name);
+
+                var customAnswerHandler = h.Value == null ? SurveyAnswersHandlers.FirstOrDefault() : h;
+                var response = customAnswerHandler.Value.Invoke(query.Message);
+                Send(response, query.Message);
+                return;
+            }
+        }
         private void BotOnOnCallbackQuery(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
         {
+
             var query = callbackQueryEventArgs.CallbackQuery;
             var trigger = query.Data.Split('|')[0];
             var args = query.Data.Replace(trigger + "|", "");
@@ -329,7 +377,7 @@ namespace TelegramBotFramework.Core
                     }
                 }
             }
-            if (UsersWaitingAnswers.ContainsKey(query.Message.Chat.Id) && CurrentUserUpdatingObjects != null&&CurrentUserUpdatingObjects.ContainsKey(query.Message.Chat.Id))
+            if (UsersWaitingAnswers.ContainsKey(query.Message.Chat.Id) && CurrentUserUpdatingObjects != null && CurrentUserUpdatingObjects.ContainsKey(query.Message.Chat.Id))
             {
                 query.Message.Text = args;
                 // query.Message.Type = MessageType.Text;
@@ -341,7 +389,26 @@ namespace TelegramBotFramework.Core
                 return;
             }
         }
+        private void BotOnOnInlineQuery(object sender, InlineQuery query)
+        {
+            try
+            {               
 
+                new Thread(() => HandleQuery(query)).Start();
+            }
+            catch (Exception e)
+            {
+                while (e.InnerException != null)
+                    e = e.InnerException;
+                var message = e.GetType() + " - " + e.Message;
+                if (e is FileNotFoundException)
+                    message += " file: " + ((FileNotFoundException)e).FileName;
+                //else if (e is DirectoryNotFoundException)
+                //    message += " file: " + ((DirectoryNotFoundException)e).;
+                message += Environment.NewLine + e.StackTrace;
+                Log.WriteLine($"Error in message handling: {message}", LogLevel.Error, fileName: "telegram.log");
+            }
+        }
         private void BotOnOnInlineQuery(object sender, InlineQueryEventArgs inlineQueryEventArgs)
         {
             try
@@ -440,10 +507,26 @@ namespace TelegramBotFramework.Core
             }
 
         }
+       
         public virtual void OnWebHookUpdate(Update update)
         {
             try
             {
+                if (!((update.Message?.Date??update.CallbackQuery?.Message?.Date) > DateTime.UtcNow.AddSeconds(-15)))
+                {
+                    return;
+                }
+                if (update.Type == UpdateType.CallbackQuery)
+                {
+                    BotOnOnCallbackQuery("webhook",update.CallbackQuery);
+                    return;
+                }
+                if (update.Type == UpdateType.InlineQuery)
+                {
+                    BotOnOnInlineQuery("webhook", update.InlineQuery);
+                    return;
+                }
+
                 if (update.Type == UpdateType.PreCheckoutQuery || update.Message?.SuccessfulPayment != null)
                 {
                     new Thread(() => HandlePreCheckout(update)).Start();
@@ -451,10 +534,7 @@ namespace TelegramBotFramework.Core
                 }
                 if (update.Type == UpdateType.InlineQuery) return;
 
-                if (!(update.Message?.Date > DateTime.UtcNow.AddSeconds(-15)))
-                {
-                    return;
-                }
+               
                 new Thread(() => Handle(update)).Start();
             }
             catch (Exception e)
@@ -549,131 +629,136 @@ namespace TelegramBotFramework.Core
         }
         internal void Handle(Update update)
         {
-            if (update.Message.Type == MessageType.Text)
+            try
             {
-                //TODO: do something with this update
-                try
+               
+                if (update.Type == UpdateType.CallbackQuery && String.IsNullOrEmpty(update.Message.Text))
                 {
-                    var msg = (update.Message.From.Username ?? update.Message.From.FirstName) + ": " + update.Message.Text;
-                    var chat = update.Message.Chat.Title;
-                    if (String.IsNullOrWhiteSpace(chat))
-                        chat = "Private Message";
+                    var trigger = update.CallbackQuery.Data.Split('|')[0];
+                    var args = update.CallbackQuery.Data.Replace(trigger + "|", "");
 
-                    var user = UserHelper.GetTelegramUser(Db, update);
+                    update.Message.Text = args;
+                }
+                var msg = (update.Message.From.Username ?? update.Message.From.FirstName) + ": " + update.Message.Text;
+                var chat = update.Message.Chat.Title;
+                if (String.IsNullOrWhiteSpace(chat))
+                    chat = "Private Message";
 
-                    if (user.Grounded) return;
-                    TelegramBotGroup group;
-                    if (update.Message.Chat.Type != ChatType.Private)
-                    {
-                        group = GroupHelper.GetGroup(Db, update);
-                    }
-                    Log.WriteLine(chat, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
-                    Log.WriteLine(msg, LogLevel.Info, ConsoleColor.White, "telegram.log");
+                var user = UserHelper.GetTelegramUser(Db, update);
 
-                    if (UserMustBeApprooved)
+                if (user.Grounded) return;
+                TelegramBotGroup group;
+                if (update.Message.Chat.Type != ChatType.Private)
+                {
+                    group = GroupHelper.GetGroup(Db, update);
+                }
+                Log.WriteLine(chat, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
+                Log.WriteLine(msg, LogLevel.Info, ConsoleColor.White, "telegram.log");
+
+                if (UserMustBeApprooved)
+                {
+                    if (!user.IsBotAdmin)
                     {
-                        if (!user.IsBotAdmin)
-                        {
-                            Bot.SendTextMessageAsync(update.Message.Chat, "You must be approved to use this bot, write to admin");
-                            return;
-                        }
-                    }
-                    if (UsersWaitingAnswers.ContainsKey(update.Message.Chat.Id) && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
-                    {
-                        if (!SurveyAnswersHandlers.Any())
-                        {
-                            Send(new MessageSentEventArgs() { Target = LoadedSetting.TelegramDefaultAdminUserId.ToString(), Response = new CommandResponse($"Here is any answer handlers for \n{JsonConvert.SerializeObject(UsersWaitingAnswers[update.Message.Chat.Id])}") });
-                            return;
-                        }
-                        if (SurveyAnswersHandlers.Any(c => c.Key.Name == CurrentUserUpdatingObjects[update.Message.Chat.Id].GetType().Name))
-                        {
-                            if (update.Type == UpdateType.CallbackQuery && String.IsNullOrEmpty(update.Message.Text))
-                            {
-                                var trigger = update.CallbackQuery.Data.Split('|')[0];
-                                var args = update.CallbackQuery.Data.Replace(trigger + "|", "");
-                                update.Message.Text = args;
-                            }
-                            var customAnswerHandler = SurveyAnswersHandlers.FirstOrDefault(c => c.Key.Name == CurrentUserUpdatingObjects[update.Message.Chat.Id].GetType().Name);
-                            var response = customAnswerHandler.Value.Invoke(update.Message);
-                            Send(response, update.Message);
-                        }
-                        else
-                        {
-                            var customAnswerHandler = SurveyAnswersHandlers.FirstOrDefault();
-                            var response = customAnswerHandler.Value.Invoke(update.Message);
-                            Send(response, update.Message);
-                        }
+                        Bot.SendTextMessageAsync(update.Message.Chat, "You must be approved to use this bot, write to admin");
                         return;
                     }
-                    if (update.Message.Text.StartsWith("!") || update.Message.Text.StartsWith("/"))
+                }
+                if (UsersWaitingAnswers.ContainsKey(update.Message.Chat.Id) && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
+                {
+                    if (!SurveyAnswersHandlers.Any())
                     {
-                        var args = GetParameters(update.Message.Text);
-                        foreach (var command in Commands)
+                        Send(new MessageSentEventArgs() { Target = LoadedSetting.TelegramDefaultAdminUserId.ToString(), Response = new CommandResponse($"Here is any answer handlers for \n{JsonConvert.SerializeObject(UsersWaitingAnswers[update.Message.Chat.Id])}") });
+                        return;
+                    }
+                    if (SurveyAnswersHandlers.Any(c => c.Key.Name == CurrentUserUpdatingObjects[update.Message.Chat.Id].GetType().Name))
+                    {
+                        if (update.Type == UpdateType.CallbackQuery && String.IsNullOrEmpty(update.Message.Text))
                         {
-                            if (command.Key.Triggers.Contains(args[0].ToLower()))
+                            var trigger = update.CallbackQuery.Data.Split('|')[0];
+                            var args = update.CallbackQuery.Data.Replace(trigger + "|", "");
+                            update.Message.Text = args;
+                        }
+                        var customAnswerHandler = SurveyAnswersHandlers.FirstOrDefault(c => c.Key.Name == CurrentUserUpdatingObjects[update.Message.Chat.Id].GetType().Name);
+                        var response = customAnswerHandler.Value.Invoke(update.Message);
+                        Send(response, update.Message);
+                    }
+                    else
+                    {
+                        var customAnswerHandler = SurveyAnswersHandlers.FirstOrDefault();
+                        var response = customAnswerHandler.Value.Invoke(update.Message);
+                        Send(response, update.Message);
+                    }
+                    return;
+                }
+                if (update.Message.Text.StartsWith("!") || update.Message.Text.StartsWith("/"))
+                {
+                    var args = GetParameters(update.Message.Text);
+                    foreach (var command in Commands)
+                    {
+                        if (command.Key.Triggers.Contains(args[0].ToLower()))
+                        {
+                            //check for access
+                            var att = command.Key;
+                            if (att.DevOnly &&
+                                update.Message.From.Id != LoadedSetting.TelegramDefaultAdminUserId)
                             {
-                                //check for access
-                                var att = command.Key;
-                                if (att.DevOnly &&
-                                    update.Message.From.Id != LoadedSetting.TelegramDefaultAdminUserId)
-                                {
-                                    Send(new CommandResponse("You are not the developer!"), update);
-                                    return;
-                                }
-                                if (att.BotAdminOnly & !user.IsBotAdmin & LoadedSetting.TelegramDefaultAdminUserId != update.Message.From.Id)
-                                {
-                                    Send(new CommandResponse("You are not a bot admin!"), update);
-                                    return;
-                                }
-                                if (att.GroupAdminOnly)
-                                {
-                                    if (update.Message.Chat.Type == ChatType.Private)
-                                    {
-                                        Send(new CommandResponse("You need to run this in a group"), update);
-                                        return;
-                                    }
-                                    //is the user an admin of the group?
-                                    var status =
-                                        Bot.GetChatMemberAsync(update.Message.Chat.Id, update.Message.From.Id)
-                                            .Result.Status;
-                                    if (status != ChatMemberStatus.Administrator && status != ChatMemberStatus.Creator)
-                                    {
-                                        Send(new CommandResponse("You are not a group admin!"), update);
-                                        return;
-                                    }
-                                }
-                                if (att.InGroupOnly && update.Message.Chat.Type == ChatType.Private)
+                                Send(new CommandResponse("You are not the developer!"), update);
+                                return;
+                            }
+                            if (att.BotAdminOnly & !user.IsBotAdmin & LoadedSetting.TelegramDefaultAdminUserId != update.Message.From.Id)
+                            {
+                                Send(new CommandResponse("You are not a bot admin!"), update);
+                                return;
+                            }
+                            if (att.GroupAdminOnly)
+                            {
+                                if (update.Message.Chat.Type == ChatType.Private)
                                 {
                                     Send(new CommandResponse("You need to run this in a group"), update);
                                     return;
                                 }
-                                if (att.InPrivateOnly)
+                                //is the user an admin of the group?
+                                var status =
+                                    Bot.GetChatMemberAsync(update.Message.Chat.Id, update.Message.From.Id)
+                                        .Result.Status;
+                                if (status != ChatMemberStatus.Administrator && status != ChatMemberStatus.Creator)
                                 {
-                                    Send(new CommandResponse("You need to run this in private"), update);
+                                    Send(new CommandResponse("You are not a group admin!"), update);
                                     return;
                                 }
-                                var eArgs = new CommandEventArgs
-                                {
-                                    SourceUser = user,
-                                    DatabaseInstance = Db,
-                                    Parameters = args[1],
-                                    Target = update.Message.Chat.Id.ToString(),
-                                    Messenger = Messenger,
-                                    Bot = Bot,
-                                    Message = update.Message
-                                };
-                                var response = command.Value.Invoke(eArgs);
-                                if (!String.IsNullOrWhiteSpace(response.Text))
-                                    Send(response, update);
                             }
+                            if (att.InGroupOnly && update.Message.Chat.Type == ChatType.Private)
+                            {
+                                Send(new CommandResponse("You need to run this in a group"), update);
+                                return;
+                            }
+                            if (att.InPrivateOnly)
+                            {
+                                Send(new CommandResponse("You need to run this in private"), update);
+                                return;
+                            }
+                            var eArgs = new CommandEventArgs
+                            {
+                                SourceUser = user,
+                                DatabaseInstance = Db,
+                                Parameters = args[1],
+                                Target = update.Message.Chat.Id.ToString(),
+                                Messenger = Messenger,
+                                Bot = Bot,
+                                Message = update.Message
+                            };
+                            var response = command.Value.Invoke(eArgs);
+                            if (!String.IsNullOrWhiteSpace(response.Text))
+                                Send(response, update);
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    Log.WriteLine("Exception happend at handling update:\n" + ex.ToString(), LogLevel.Error, ConsoleColor.Cyan, "error.log");
-                }
             }
+            catch (Exception ex)
+            {
+                Log.WriteLine("Exception happend at handling update:\n" + ex.ToString(), LogLevel.Error, ConsoleColor.Cyan, "error.log");
+            }
+
         }
 
 
