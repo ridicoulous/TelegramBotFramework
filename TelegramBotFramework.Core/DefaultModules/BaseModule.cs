@@ -121,21 +121,20 @@ namespace TelegramBotFramework.DefaultModules
         public CommandResponse GetCommandList(CommandEventArgs args)
         {
             var sb = new StringBuilder();
-            //var module =
-            //    BotWrapper.Modules.FirstOrDefault();
-            //if (module.Key == null)
-            // return new CommandResponse($"{args.Parameters} module not found.");
+         
+            HashSet<string> addedCommands = new HashSet<string>();
             foreach (var module in BotWrapper.Modules)
             {
-                //sb.AppendLine($"*Module {module.Key.Name}:*");
                 foreach (var method in module.Value.GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
                 {
                     var att = method.GetCustomAttributes<ChatCommand>().First();
-                    if (!att.DontSearchInline)
+                    if (!att.DontSearchInline&&!addedCommands.Contains(att.Triggers[0]))
+                    {
+                        addedCommands.Add(att.Triggers[0]);
                         sb.AppendLine($"/{att.Triggers[0]} : {att.HelpText ?? method.Name}");
+                    }
                 }
             }
-
             return new CommandResponse(sb.ToString(), parseMode: ParseMode.Markdown);
         }
 

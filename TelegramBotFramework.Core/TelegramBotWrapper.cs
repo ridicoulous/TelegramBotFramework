@@ -152,12 +152,9 @@ namespace TelegramBotFramework.Core
         private void GetMethodsFromAssembly(Assembly assembly)
         {
             try
-            {
-                //var typs = assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
-                //   && myType.IsDefined(typeof(TelegramBotModule)));
-                // Log.WriteLine($"Loading {this.GetType().Name} bot");
+            {               
                 foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
-                   && myType.IsDefined(typeof(TelegramBotModule)) /*|| myType.IsAssignableFrom(typeof(ITelegramBotModule))*/))
+                   && myType.IsDefined(typeof(TelegramBotModule))))
                 {
 
                     var tAtt = type.GetCustomAttributes<TelegramBotModule>().FirstOrDefault();
