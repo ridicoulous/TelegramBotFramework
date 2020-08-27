@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 
 using System.Collections.Generic;
 using System.IO;
@@ -27,7 +28,10 @@ namespace TelegramBotFramework.Core.SQLiteDb
         {
             if (_inMemory)
             {
-                optionsBuilder.UseSqlite($"Data Source=:memory:");
+                var keepAliveConnection = new SqliteConnection("DataSource=:memory:");
+                keepAliveConnection.Open();
+                optionsBuilder.UseSqlite(keepAliveConnection);
+                this.Database.EnsureCreated();
             }
             else
             {
