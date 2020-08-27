@@ -7,7 +7,7 @@ namespace TelegramBotFramework.Core.SQLiteDb
 {
     public class TelegramBotDbContext : DbContext
     {
-        private readonly string _db;    
+        public readonly string _db;    
 
         public TelegramBotDbContext(string dbName)
         {

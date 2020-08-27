@@ -67,7 +67,6 @@ namespace TelegramBotFramework.Core
                     }
                     catch (Exception ex)
                     {
-
                         Log.Write($"Saving admin error: {ex}", LogLevel.Error, null, "error.log");
                     }
                 }
@@ -100,22 +99,26 @@ namespace TelegramBotFramework.Core
                 Directory.CreateDirectory(Path.Combine(RootDirectory));
             }
             Log = new TelegramBotLogger(Path.Combine(RootDirectory, "Logs-" + alias));
+            var setting = new TelegramBotSetting() { Alias = alias, TelegramDefaultAdminUserId = adminId, TelegramBotAPIKey = key };
+            LoadedSetting = setting;
 
             try
             {
                 Db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias));
-                Db.Database.EnsureCreated();
-                SeedDb(Db);
+                if(!System.IO.File.Exists($"{Path.Combine(RootDirectory, alias)}.db"))
+                {
+                    Db.Database.EnsureCreated();
+                    SeedDb(Db);
+                }
+           
                 //  Db.SaveChanges();
 
             }
             catch (Exception ex)
             {
-                Log.WriteLine($"Seeding data error: {ex.ToString()}", LogLevel.Error, null, "error.log");
+                Log.WriteLine($"Db creating data error: {ex.ToString()}", LogLevel.Error, null, "error.log");
             }
 
-            var setting = new TelegramBotSetting() { Alias = alias, TelegramDefaultAdminUserId = adminId, TelegramBotAPIKey = key };
-            LoadedSetting = setting;
             Console.OutputEncoding = Encoding.UTF8;
             Messenger.MessageSent += MessengerOnMessageSent;
             AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
