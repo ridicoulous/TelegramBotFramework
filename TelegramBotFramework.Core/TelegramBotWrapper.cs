@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -85,7 +86,7 @@ namespace TelegramBotFramework.Core
                 using (var db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias)))
                 {                   
                     db.Database.EnsureCreated();                    
-                    if (!db.Users.ToList().Any(c => c.UserId == adminId))
+                    if (!db.Users.AsNoTracking().ToList().Any(c => c.UserId == adminId))
                     {
                         db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId, FirstSeen = DateTime.UtcNow });                        
                         db.SaveChanges();
@@ -893,7 +894,7 @@ namespace TelegramBotFramework.Core
             {
                 try
                 {
-                    var users = Db.Users.AsEnumerable();
+                    var users = Db.Users.AsNoTracking().AsEnumerable();
                     if (onlyAdmins)
                         users = users.Where(c => c.IsBotAdmin);
                     if (onlydev)

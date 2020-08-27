@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -38,7 +39,7 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
 
         public static bool ExistsInDb(this TelegramBotUser user, TelegramBotDbContext db)
         {
-            return db.Users.Any(i => i.ID == user.ID);
+            return db.Users.AsNoTracking().Any(i => i.ID == user.ID);
         }
 
         public static void RemoveFromDb(this TelegramBotUser user, TelegramBotDbContext db)
@@ -440,7 +441,7 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
             {
                 var m = message.ReplyToMessage;
                 var userid = m.ForwardFrom?.Id ?? m.From.Id;
-                return db.Users.FirstOrDefault(x => x.UserId == userid) ?? sourceUser;
+                return db.Users.AsNoTracking().FirstOrDefault(x => x.UserId == userid) ?? sourceUser;
             }
             if (String.IsNullOrWhiteSpace(args))
             {
@@ -459,12 +460,12 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
             }
             TelegramBotUser result = null;
             if (!String.IsNullOrEmpty(username))
-                result = db.Users.FirstOrDefault(
+                result = db.Users.AsNoTracking().FirstOrDefault(
                     x => x.UserName.ToUpper() == username.ToUpper());
             else if (id != 0)
-                result = db.Users.FirstOrDefault(x => x.UserId == id);
+                result = db.Users.AsNoTracking().FirstOrDefault(x => x.UserId == id);
             else
-                result = db.Users.ToList().FirstOrDefault(
+                result = db.Users.AsNoTracking().ToList().FirstOrDefault(
                         x =>
                             String.Equals(x.UserId.ToString(), args, StringComparison.InvariantCultureIgnoreCase) ||
                             String.Equals(x.UserName, args.Replace("@", ""), StringComparison.InvariantCultureIgnoreCase));
