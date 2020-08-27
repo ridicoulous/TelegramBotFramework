@@ -84,15 +84,23 @@ namespace TelegramBotFramework.Core
             {
                 Directory.CreateDirectory(Path.Combine(RootDirectory));
             }
-            using (var db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias)))
-            {
 
-                db.Database.EnsureCreated();
-                if (!db.Users.Any(c => c.UserId == adminId))
+            try
+            {
+                using (var db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias)))
                 {
-                    db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId, FirstSeen = DateTime.UtcNow });
-                    db.SaveChanges();
+
+                    db.Database.EnsureCreated();
+
+                    if (!db.Users.Any(c => c.UserId == adminId))
+                    {
+                        db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId, FirstSeen = DateTime.UtcNow });
+                        db.SaveChanges();
+                    }
                 }
+            }
+            catch (Exception)
+            {                
             }
             Log = new TelegramBotLogger(Path.Combine(RootDirectory, "Logs-" + alias));
             Db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias));
