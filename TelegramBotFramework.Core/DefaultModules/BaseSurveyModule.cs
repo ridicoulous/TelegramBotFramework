@@ -155,7 +155,8 @@ namespace TelegramBotFramework.Core.DefaultModules
             }
             try
             {
-                BotWrapper.Bot.DeleteMessageAsync(message.Chat, LastAnswerMessageId[message.Chat.Id]).Wait();
+                if(LastAnswerMessageId.ContainsKey(message.Chat.Id))
+                    BotWrapper.Bot.DeleteMessageAsync(message.Chat, LastAnswerMessageId[message.Chat.Id]).Wait();
             }
             catch { }
             return SendQuestion(message.Chat.Id);

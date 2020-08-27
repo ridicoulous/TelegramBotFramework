@@ -13,18 +13,8 @@ namespace TelegramBotFramework.Core.Helpers
     {
         public static TelegramBotUser GetTelegramUser(TelegramBotDbContext db, int adminId, Update update = null, InlineQuery query = null, CallbackQuery cbQuery = null, bool logPoint = true)
         {
-            if (!System.IO.File.Exists($"{db._db}.db"))
-            {
-                db.Database.EnsureCreated();
-            }
-            
             var users = db.Users.AsNoTracking().ToList();
 
-            if (!users.Any(c => c.UserId == adminId))
-            {
-                var admin = new TelegramBotUser() { IsBotAdmin = true, UserId = adminId, FirstSeen = DateTime.UtcNow };
-                admin.Save(db);                
-            }
             var from = update?.Message.From ?? query?.From ?? cbQuery?.From;
             if (from == null) return null;
             var u = db.Users.AsNoTracking().FirstOrDefault(x => x.UserId == from.Id) ?? new TelegramBotUser

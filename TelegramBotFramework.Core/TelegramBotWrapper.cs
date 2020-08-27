@@ -53,7 +53,7 @@ namespace TelegramBotFramework.Core
         private readonly string _paymentToken;
         private readonly bool UserMustBeApprooved;
         private readonly string _webHookUrl;
-        private void SeedDb(TelegramBotDbContext db)
+        public virtual void SeedDb(TelegramBotDbContext db, params int[] admins)
         {
             if (!db.Users.AsNoTracking().ToList().Any(c => c.UserId == LoadedSetting.TelegramDefaultAdminUserId))
             {
@@ -61,7 +61,14 @@ namespace TelegramBotFramework.Core
                 {
                     try
                     {
+
+                        foreach (var u in admins)
+                        {
+                            db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = u, FirstSeen = DateTime.UtcNow });
+                        }
                         db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = LoadedSetting.TelegramDefaultAdminUserId, FirstSeen = DateTime.UtcNow });
+
+
                         db.SaveChanges();
                         tx.Commit();
                     }
@@ -80,7 +87,7 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>        
-        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = "", string webHookUrl = null)
+        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = "", string webHookUrl = null, bool shouldUseInMemoryDb = false)
         {
             if (!String.IsNullOrEmpty(webHookUrl))
             {
@@ -104,15 +111,9 @@ namespace TelegramBotFramework.Core
 
             try
             {
-                Db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias));
-                if(!System.IO.File.Exists($"{Path.Combine(RootDirectory, alias)}.db"))
-                {
-                    Db.Database.EnsureCreated();
-                    SeedDb(Db);
-                }
-           
-                //  Db.SaveChanges();
-
+                Db = shouldUseInMemoryDb ? new TelegramBotDbContext() : new TelegramBotDbContext(Path.Combine(RootDirectory, alias));
+                Db.Database.EnsureCreated();
+                SeedDb(Db);
             }
             catch (Exception ex)
             {
