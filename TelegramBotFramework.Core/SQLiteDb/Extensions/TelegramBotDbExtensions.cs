@@ -434,7 +434,7 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
 
         #region Helpers
         public static TelegramBotUser GetTarget(this Message message, string args, TelegramBotUser sourceUser, TelegramBotDbContext db)
-        {
+        {          
             if (message == null) return sourceUser;
             if (message?.ReplyToMessage != null)
             {

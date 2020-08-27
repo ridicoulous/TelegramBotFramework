@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -84,10 +85,12 @@ namespace TelegramBotFramework.Core
             {
                 Directory.CreateDirectory(Path.Combine(RootDirectory));
             }
+            Log = new TelegramBotLogger(Path.Combine(RootDirectory, "Logs-" + alias));
+
             try
             {
                 using (var db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias)))
-                {
+                {                   
                     db.Database.EnsureCreated();                    
                     if (!db.Users.ToList().Any(c => c.UserId == adminId))
                     {
@@ -96,10 +99,10 @@ namespace TelegramBotFramework.Core
                     }
                 }
             }
-            catch (Exception)
-            {                
+            catch (Exception ex)
+            {
+                Log.WriteLine($"Seeding data error: {ex.ToString()}", LogLevel.Error, null, "error.log");
             }
-            Log = new TelegramBotLogger(Path.Combine(RootDirectory, "Logs-" + alias));
             Db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias));
             var setting = new TelegramBotSetting() { Alias = alias, TelegramDefaultAdminUserId = adminId, TelegramBotAPIKey = key };
             LoadedSetting = setting;
@@ -301,7 +304,7 @@ namespace TelegramBotFramework.Core
         {
             var trigger = query.Data.Split('|')[0];
             var args = query.Data.Replace(trigger + "|", "");
-            var user = UserHelper.GetTelegramUser(Db, cbQuery: query);
+            var user = UserHelper.GetTelegramUser(Db, LoadedSetting.TelegramDefaultAdminUserId, cbQuery: query);
 
 
             //extract the trigger
@@ -349,7 +352,7 @@ namespace TelegramBotFramework.Core
             var query = callbackQueryEventArgs.CallbackQuery;
             var trigger = query.Data.Split('|')[0];
             var args = query.Data.Replace(trigger + "|", "");
-            var user = UserHelper.GetTelegramUser(Db, cbQuery: query);
+            var user = UserHelper.GetTelegramUser(Db, LoadedSetting.TelegramDefaultAdminUserId, cbQuery: query);
 
 
             //extract the trigger
@@ -435,7 +438,7 @@ namespace TelegramBotFramework.Core
 
         private async void HandleQuery(InlineQuery query)
         {
-            var user = UserHelper.GetTelegramUser(Db, null, query);
+            var user = UserHelper.GetTelegramUser(Db, LoadedSetting.TelegramDefaultAdminUserId, null, query);
             if (user.Grounded)
             {
                 await Bot.AnswerInlineQueryAsync(query.Id, new InlineQueryResultBase[]
@@ -646,7 +649,7 @@ namespace TelegramBotFramework.Core
                 if (String.IsNullOrWhiteSpace(chat))
                     chat = "Private Message";
 
-                var user = UserHelper.GetTelegramUser(Db, update);
+                var user = UserHelper.GetTelegramUser(Db, LoadedSetting.TelegramDefaultAdminUserId, update);
 
                 if (user.Grounded) return;
                 TelegramBotGroup group;

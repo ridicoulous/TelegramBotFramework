@@ -9,8 +9,15 @@ namespace TelegramBotFramework.Core.Helpers
 {
     public static class UserHelper
     {
-        public static TelegramBotUser GetTelegramUser(TelegramBotDbContext db, Update update = null, InlineQuery query = null, CallbackQuery cbQuery = null, bool logPoint = true)
+        public static TelegramBotUser GetTelegramUser(TelegramBotDbContext db, int adminId, Update update = null, InlineQuery query = null, CallbackQuery cbQuery = null, bool logPoint = true)
         {
+            db.Database.EnsureCreated();
+         
+            if (!db.Users.ToList().Any(c => c.UserId == adminId))
+            {
+                db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId, FirstSeen = DateTime.UtcNow });
+                db.SaveChanges();
+            }
             var users = db.Users.ToList();
             var from = update?.Message.From ?? query?.From ?? cbQuery?.From;
             if (from == null) return null;
@@ -41,39 +48,5 @@ namespace TelegramBotFramework.Core.Helpers
         {
             return args.Message.GetTarget(args.Parameters, args.SourceUser, args.DatabaseInstance);
         }
-
-        //public static CommandResponse LinkUser(Instance db, DB.Models.User usr, Update update)
-        //{
-        //    //get the linking key
-        //    try
-        //    {
-        //        var key = update.Message.Text.Split(' ')[1];
-        //        var u = db.Users.FirstOrDefault(x => x.LinkingKey == key);
-        //        u.TelegramUserID = update.Message.From.Username;
-        //        u.LinkingKey = null;
-        //        u.Save(db);
-        //        MergeUsers(db, u, usr);
-        //        return new CommandResponse("Account linked.  Welcome " + u.Nick);
-        //    }
-        //    catch
-        //    {
-        //        return new CommandResponse("Unable to verify your account.");
-        //    }
-        //}
-
-
-
-        //public static DB.Models.User MergeUsers(Instance db, DB.Models.User ircUser, DB.Models.User telegramUser)
-        //{
-        //    ircUser.TelegramUserID = telegramUser.TelegramUserID;
-        //    ircUser.LinkingKey = null;
-        //    ircUser.Points += telegramUser.Points;
-        //    ircUser.Debt += telegramUser.Debt;
-        //    ircUser.LastHeard = telegramUser.LastHeard;
-        //    ircUser.LastState = telegramUser.LastState;
-        //    telegramUser.RemoveFromDb(db);
-        //    ircUser.Save(db);
-        //    return ircUser;
-        //}
     }
 }
