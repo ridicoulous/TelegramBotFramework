@@ -55,7 +55,6 @@ namespace TelegramBotFramework.Core
         private readonly string _webHookUrl;
         private void SeedDb(TelegramBotDbContext db)
         {
-            
             if (!db.Users.AsNoTracking().ToList().Any(c => c.UserId == LoadedSetting.TelegramDefaultAdminUserId))
             {
                 using (var tx = db.Database.BeginTransaction())
@@ -72,7 +71,7 @@ namespace TelegramBotFramework.Core
                         Log.Write($"Saving admin error: {ex}", LogLevel.Error, null, "error.log");
                     }
                 }
-              
+
             }
         }
         /// <summary>
@@ -105,24 +104,23 @@ namespace TelegramBotFramework.Core
             try
             {
                 Db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias));
-                using (var tx = Db.Database.BeginTransaction())
-                {
-                    Db.Database.EnsureCreated();
-                    Db.SaveChanges();
-                }
+                Db.Database.EnsureCreated();
+                SeedDb(Db);
+                //  Db.SaveChanges();
+
             }
             catch (Exception ex)
             {
                 Log.WriteLine($"Seeding data error: {ex.ToString()}", LogLevel.Error, null, "error.log");
             }
-           
+
             var setting = new TelegramBotSetting() { Alias = alias, TelegramDefaultAdminUserId = adminId, TelegramBotAPIKey = key };
             LoadedSetting = setting;
             Console.OutputEncoding = Encoding.UTF8;
             Messenger.MessageSent += MessengerOnMessageSent;
             AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
 
-//            var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-" + alias);
+            //            var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-" + alias);
 
             //WatchForNewModules(telegramBotModuleDir);
         }
@@ -172,7 +170,7 @@ namespace TelegramBotFramework.Core
         private void GetMethodsFromAssembly(Assembly assembly)
         {
             try
-            {               
+            {
                 foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
                    && myType.IsDefined(typeof(TelegramBotModule))))
                 {
@@ -409,7 +407,7 @@ namespace TelegramBotFramework.Core
         private void BotOnOnInlineQuery(object sender, InlineQuery query)
         {
             try
-            {               
+            {
 
                 new Thread(() => HandleQuery(query)).Start();
             }
@@ -524,18 +522,18 @@ namespace TelegramBotFramework.Core
             }
 
         }
-       
+
         public virtual void OnWebHookUpdate(Update update)
         {
             try
             {
-                if (!((update.Message?.Date??update.CallbackQuery?.Message?.Date) > DateTime.UtcNow.AddSeconds(-15)))
+                if (!((update.Message?.Date ?? update.CallbackQuery?.Message?.Date) > DateTime.UtcNow.AddSeconds(-15)))
                 {
                     return;
                 }
                 if (update.Type == UpdateType.CallbackQuery)
                 {
-                    BotOnOnCallbackQuery("webhook",update.CallbackQuery);
+                    BotOnOnCallbackQuery("webhook", update.CallbackQuery);
                     return;
                 }
                 if (update.Type == UpdateType.InlineQuery)
@@ -551,7 +549,7 @@ namespace TelegramBotFramework.Core
                 }
                 if (update.Type == UpdateType.InlineQuery) return;
 
-               
+
                 new Thread(() => Handle(update)).Start();
             }
             catch (Exception e)
@@ -648,7 +646,7 @@ namespace TelegramBotFramework.Core
         {
             try
             {
-               
+
                 if (update.Type == UpdateType.CallbackQuery && String.IsNullOrEmpty(update.Message.Text))
                 {
                     var trigger = update.CallbackQuery.Data.Split('|')[0];
