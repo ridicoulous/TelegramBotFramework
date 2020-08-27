@@ -30,7 +30,7 @@ namespace TelegramBotFramework.Core
 {
     public class TelegramBotWrapper : ITelegramBotWrapper
     {
-        public static string RootDirectory { get; set; } = AppDomain.CurrentDomain.BaseDirectory;
+        public static string RootDirectory { get; set; } = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
         public UsersSurveys CurrentUserUpdatingObjects { get; set; } = new UsersSurveys();
         public delegate CommandResponse ChatCommandMethod(CommandEventArgs args);
@@ -84,17 +84,14 @@ namespace TelegramBotFramework.Core
             {
                 Directory.CreateDirectory(Path.Combine(RootDirectory));
             }
-
             try
             {
                 using (var db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias)))
                 {
-
-                    db.Database.EnsureCreated();
-
-                    if (!db.Users.Any(c => c.UserId == adminId))
+                    db.Database.EnsureCreated();                    
+                    if (!db.Users.ToList().Any(c => c.UserId == adminId))
                     {
-                        db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId, FirstSeen = DateTime.UtcNow });
+                        db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId, FirstSeen = DateTime.UtcNow });                        
                         db.SaveChanges();
                     }
                 }
