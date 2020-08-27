@@ -1,13 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,7 +12,6 @@ using Telegram.Bot.Args;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
-using Telegram.Bot.Types.Payments;
 using Telegram.Bot.Types.ReplyMarkups;
 using TelegramBotFramework.Core.DefaultModules;
 using TelegramBotFramework.Core.Helpers;
@@ -24,8 +19,6 @@ using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.Logging;
 using TelegramBotFramework.Core.Objects;
 using TelegramBotFramework.Core.SQLiteDb;
-using TelegramBotFramework.Core.SQLiteDb.Extensions;
-using TgBotFramework.Core.Interfaces;
 
 namespace TelegramBotFramework.Core
 {
@@ -110,9 +103,9 @@ namespace TelegramBotFramework.Core
             Messenger.MessageSent += MessengerOnMessageSent;
             AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
 
-            var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-" + alias);
+//            var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-" + alias);
 
-            WatchForNewModules(telegramBotModuleDir);
+            //WatchForNewModules(telegramBotModuleDir);
         }
         private void WatchForNewModules(string path)
         {
@@ -120,12 +113,12 @@ namespace TelegramBotFramework.Core
             {
                 Directory.CreateDirectory(path);
             }
-            FileSystemWatcher watcher = new FileSystemWatcher();
-            watcher.Path = path;
-            watcher.NotifyFilter = NotifyFilters.LastWrite;
-            watcher.Filter = "*.dll";
-            watcher.Changed += new FileSystemEventHandler(OnChanged);
-            watcher.EnableRaisingEvents = true;
+            //FileSystemWatcher watcher = new FileSystemWatcher();
+            //watcher.Path = path;
+            //watcher.NotifyFilter = NotifyFilters.LastWrite;
+            //watcher.Filter = "*.dll";
+            //watcher.Changed += new FileSystemEventHandler(OnChanged);
+            //watcher.EnableRaisingEvents = true;
         }
 
         private void OnChanged(object sender, FileSystemEventArgs e)
