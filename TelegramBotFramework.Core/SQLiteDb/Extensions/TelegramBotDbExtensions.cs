@@ -14,11 +14,17 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
         {
             if (u.ID == null || !ExistsInDb(u, db))
             {
-
-                //need to insert
-                db.Users.Add(u);
-                db.SaveChanges();
-                u.ID = db.Users.FirstOrDefault(c => c.UserId == u.UserId).ID;
+                using (var tx = db.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        db.Users.Add(u);
+                        db.SaveChanges();
+                        u.ID = db.Users.FirstOrDefault(c => c.UserId == u.UserId).ID;
+                    }
+                    catch { }
+                }
+               
                 //db.Database.ExecuteSqlCommand(
                 //    "insert into users (Name, UserId, UserName, FirstSeen, LastHeard, Points, Location, Debt, LastState, Greeting, Grounded, GroundedBy, IsBotAdmin, LinkingKey, Description) VALUES (@Name, @UserId, @UserName, @FirstSeen, @LastHeard, @Points, @Location, @Debt, @LastState, @Greeting, @Grounded, @GroundedBy, @IsBotAdmin, @LinkingKey, @Description)",
                 //    u);
@@ -29,8 +35,17 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
             }
             else
             {
-                db.Users.Update(u);
-                db.SaveChanges();
+                using(var tx = db.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        db.Users.Update(u);
+                        db.SaveChanges();
+                        tx.Commit();
+                    }
+                    catch { }
+                }
+                
                 //db.ExecuteNonQuery(
                 //    "UPDATE users SET Name = @Name, UserId = @UserId, UserName = @UserName, FirstSeen = @FirstSeen, LastHeard = @LastHeard, Points = @Points, Location = @Location, Debt = @Debt, LastState = @LastState, Greeting = @Greeting, Grounded = @Grounded, GroundedBy = @GroundedBy, IsBotAdmin = @IsBotAdmin, LinkingKey = @LinkingKey, Description = @Description WHERE ID = @ID",
                 //    u);

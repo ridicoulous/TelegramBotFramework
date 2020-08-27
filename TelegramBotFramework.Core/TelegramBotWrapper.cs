@@ -53,14 +53,35 @@ namespace TelegramBotFramework.Core
         private readonly string _paymentToken;
         private readonly bool UserMustBeApprooved;
         private readonly string _webHookUrl;
+        private void SeedDb(TelegramBotDbContext db)
+        {
+            
+            if (!db.Users.AsNoTracking().ToList().Any(c => c.UserId == LoadedSetting.TelegramDefaultAdminUserId))
+            {
+                using (var tx = db.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = LoadedSetting.TelegramDefaultAdminUserId, FirstSeen = DateTime.UtcNow });
+                        db.SaveChanges();
+                        tx.Commit();
+                    }
+                    catch (Exception ex)
+                    {
 
+                        Log.Write($"Saving admin error: {ex}", LogLevel.Error, null, "error.log");
+                    }
+                }
+              
+            }
+        }
         /// <summary>
         /// Constructor. You may inject IServiceProvider to freely use you registered services in your modules
         /// </summary>
         /// <param name="key"></param>
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
-        /// <param name="alias"></param>
+        /// <param name="alias"></param>        
         public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = "", string webHookUrl = null)
         {
             if (!String.IsNullOrEmpty(webHookUrl))
@@ -83,21 +104,18 @@ namespace TelegramBotFramework.Core
 
             try
             {
-                using (var db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias)))
-                {                   
-                    db.Database.EnsureCreated();                    
-                    if (!db.Users.AsNoTracking().ToList().Any(c => c.UserId == adminId))
-                    {
-                        db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = adminId, FirstSeen = DateTime.UtcNow });                        
-                        db.SaveChanges();
-                    }
+                Db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias));
+                using (var tx = Db.Database.BeginTransaction())
+                {
+                    Db.Database.EnsureCreated();
+                    Db.SaveChanges();
                 }
             }
             catch (Exception ex)
             {
                 Log.WriteLine($"Seeding data error: {ex.ToString()}", LogLevel.Error, null, "error.log");
             }
-            Db = new TelegramBotDbContext(Path.Combine(RootDirectory, alias));
+           
             var setting = new TelegramBotSetting() { Alias = alias, TelegramDefaultAdminUserId = adminId, TelegramBotAPIKey = key };
             LoadedSetting = setting;
             Console.OutputEncoding = Encoding.UTF8;
