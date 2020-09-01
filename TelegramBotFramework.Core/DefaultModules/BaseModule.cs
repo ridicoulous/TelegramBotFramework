@@ -26,11 +26,7 @@ namespace TelegramBotFramework.DefaultModules
   
     [TelegramBotModule(Author = "ridicoulous", Name = "Base", Version = "1.0")]
     public class BaseModule : TelegramBotModuleBase<TelegramBotWrapper>
-    {
-        //public TestModule(TelegramBotWrapper wrapper) : base(wrapper)
-        //{
-
-        //}    
+    {         
         public BaseModule(TelegramBotWrapper wrapper) : base(wrapper)
         {
 

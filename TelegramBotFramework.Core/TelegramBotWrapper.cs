@@ -180,26 +180,47 @@ namespace TelegramBotFramework.Core
                 {
 
                     var tAtt = type.GetCustomAttributes<TelegramBotModule>().FirstOrDefault();
-                    if (tAtt.Name.Contains("Surv"))
+                    Log.WriteLine($"Loading {type.GetType().Name} ({tAtt.Name}) module");
+                    var currentBot = this.GetType();
+                    //if(currentBot.BaseType!=null&&!(currentBot.BaseType !=  typeof(TelegramBotWrapper)))
+                    //{
+                    //    continue;
+                    //}
+                    object instance = null;
+                    //if (currentBot.BaseType != typeof(TelegramBotWrapper))
+                    //{
+                    var constructs = type.GetConstructors();
+                    foreach (var c in constructs)
                     {
+                        var paramss = c.GetParameters();
+                        if (paramss.Length == 1)
+                        {
+                            if (paramss[0].ParameterType == currentBot)
+                            {
+                                Log.WriteLine($"Finded constructor, invoking it for loading {tAtt.Name} at {this.GetType().FullName}");
 
+                                instance = c.Invoke(new object[] { this });
+                            }
+                        }
                     }
-                    if (type.IsAssignableFrom(typeof(IBaseSurveyModule)) || type.IsAssignableFrom(typeof(BaseSurveyModule<,>)))
+                    if (instance == null)
                     {
+                        var constructor = type.GetConstructor(new[] { typeof(TelegramBotWrapper) });
 
-                    }
-                    Log.WriteLine($"Loading {type.GetType().Name} module");
-                    if (type.GetType().Name.Contains("RuntimeType"))
+                        if (constructor == null)
+                        {
+                            Log.WriteLine($"Can not create instance of {tAtt.Name}");
+                            continue;
+                        }
+                        Log.WriteLine($"Finded constructor {constructor.Name}, invoking it for loading {tAtt.Name} at {this.GetType().FullName}");
+                        instance = constructor.Invoke(new object[] { this });
+                    }                  
+                    if (instance == null)
                     {
+                        Log.WriteLine($"{tAtt.Name}not loaded cause can not instantiate by finding contructor");
 
-                    }
-                    var constructor = type.GetConstructor(new[] { this.GetType() });
-                    if (constructor == null)
-                    {
-                        Log.WriteLine($"Can not create instance of {tAtt.Name}");
                         continue;
                     }
-                    var instance = constructor.Invoke(new object[] { this });
                     if (Modules.ContainsKey(tAtt))
                     {
                         Log.WriteLine($"{tAtt.Name} has been already loaded. Rename it, if it is no dublicate");
