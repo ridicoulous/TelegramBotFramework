@@ -35,16 +35,16 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
             }
             else
             {
-                using(var tx = db.Database.BeginTransaction())
-                {
-                    try
-                    {
-                        db.Users.Update(u);
-                        db.SaveChanges();
-                        tx.Commit();
-                    }
-                    catch { }
-                }
+                //using(var tx = db.Database.BeginTransaction())
+                //{
+                //    try
+                //    {
+                //        db.Users.Update(u);
+                //        db.SaveChanges();
+                //        tx.Commit();
+                //    }
+                //    catch { }
+                //}
                 
                 //db.ExecuteNonQuery(
                 //    "UPDATE users SET Name = @Name, UserId = @UserId, UserName = @UserName, FirstSeen = @FirstSeen, LastHeard = @LastHeard, Points = @Points, Location = @Location, Debt = @Debt, LastState = @LastState, Greeting = @Greeting, Grounded = @Grounded, GroundedBy = @GroundedBy, IsBotAdmin = @IsBotAdmin, LinkingKey = @LinkingKey, Description = @Description WHERE ID = @ID",
