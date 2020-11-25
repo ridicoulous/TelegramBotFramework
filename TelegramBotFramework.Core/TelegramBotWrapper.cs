@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -80,6 +81,7 @@ namespace TelegramBotFramework.Core
 
             }
         }
+
         /// <summary>
         /// Constructor. You may inject IServiceProvider to freely use you registered services in your modules
         /// </summary>
@@ -87,7 +89,7 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>        
-        public TelegramBotWrapper(string key, int adminId, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = "", string webHookUrl = null, bool shouldUseInMemoryDb = false)
+        public TelegramBotWrapper(string key, int adminId, HttpClient httpClient=null, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = "", string webHookUrl = null, bool shouldUseInMemoryDb = false)
         {
             if (!String.IsNullOrEmpty(webHookUrl))
             {
