@@ -9,19 +9,19 @@ using TelegramBotFramework.Core.Objects;
 
 namespace TelegramBotFramework.Example.SimpleBotExample.Modules
 {
-    [TelegramBotModule(Author = "ridicoulous", Name = "Survey", Version = "1.0")]
+    [TelegramBotModule(Author = "ridicoulous", Name = "Survey", Version = "1.0",IsModuleActive =true)]
     public class SimpleSurveyModule : BaseSurveyModule<UserSurveyExample, SimpleTelegramBot>
     {
         public SimpleSurveyModule(SimpleTelegramBot wrapper) : base(wrapper)
         {
         }
 
-        [ChatCommand(Triggers = new[] { "survey" }, HelpText = "User survey")]
-        public CommandResponse InitServey(CommandEventArgs args)
+        [ChatCommand(Triggers = new[] { "surv" }, HelpText = "User survey")]
+        public CommandResponse StartSurvey(CommandEventArgs args)
         {
-            return base.InitServey<UserSurveyExample>(args.SourceUser.UserId);
+            return base.InitServey<UserSurveyExample>(args.SourceUser.UserId, new UserSurveyExample());
         }
-        [ChatSurvey(Name = nameof(UserSurveyExample))]
+      //  [ChatSurvey(Name = nameof(UserSurveyExample))]
         public override void SubmitSurvey(long userId, UserSurveyExample survey)
         {
             BotWrapper.SendMessageToAll($"User {userId} was submitted survey: \n```{JsonConvert.SerializeObject(survey)}```");

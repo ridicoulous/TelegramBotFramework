@@ -8,6 +8,7 @@ namespace TelegramBotFramework.Core.Objects
     [AttributeUsage(AttributeTargets.Field|AttributeTargets.Property)]
     public class SurveyAttribute : Attribute
     {
+        public int Order { get; set; } = 0;
         public string UpdatingPropertyName { get; set; }
         public string QuestionText { get;  set; }
         public List<string> Choises { get; set; } = new List<string>();

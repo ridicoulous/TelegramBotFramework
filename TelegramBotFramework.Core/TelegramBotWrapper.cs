@@ -32,7 +32,9 @@ namespace TelegramBotFramework.Core
         public delegate CommandResponse ChatCommandMethod(CommandEventArgs args);
         public delegate CommandResponse ChatServeyMethod(Message args);
         public Dictionary<long, Queue<SurveyAttribute>> UsersWaitingAnswers { get; set; } = new Dictionary<long, Queue<SurveyAttribute>>();
+
         public Dictionary<ChatSurvey, ChatServeyMethod> SurveyAnswersHandlers = new Dictionary<ChatSurvey, ChatServeyMethod>();
+
         public readonly List<string> Questions = new List<string>();
         public delegate CommandResponse CallbackCommandMethod(CallbackEventArgs args);
         public delegate void OnException(Exception unhandled);

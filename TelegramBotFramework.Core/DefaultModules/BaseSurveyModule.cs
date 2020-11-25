@@ -42,6 +42,7 @@ namespace TelegramBotFramework.Core.DefaultModules
 
             var questions = typeof(T).GetProperties().Where(p => p.IsDefined(typeof(SurveyAttribute)));
             List<SurveyAttribute> attributes = new List<SurveyAttribute>();
+         
             foreach (var t in questions.OrderBy(c => c.Name))
             {
                 var survey = t.GetCustomAttributes<SurveyAttribute>().First();
@@ -53,6 +54,10 @@ namespace TelegramBotFramework.Core.DefaultModules
                 survey.QuestionText = String.IsNullOrEmpty(survey.QuestionText) ? $"{allowedAnswers} value of `{t.Name}`:" : survey.QuestionText;
                 survey.UpdatingPropertyName = t.Name;
                 attributes.Add(survey);
+            }
+            if (attributes.Any(c => c.Order != 0))
+            {
+                attributes = attributes.OrderBy(c => c.Order).ToList();
             }
             return SendQuestion(userId, attributes.ToList());
         }
