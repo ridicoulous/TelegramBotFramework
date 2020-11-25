@@ -1,3 +1,7 @@
+# TL;DR
+
+See [Example here](https://github.com/ridicoulous/TelegramBotFramework/tree/master/TelegramBotFramework.Example)
+
 # TelegramBotFramework
 Simple framework for easily building Telegram bots using modular system inspired by [Mr. GreyWolf](https://github.com/GreyWolfDev/CSChatBot)
 It uses reflection to automatically find all your modules and gets it's configuration from attributes. All the routine work will be done without your intervention. Just write logic and choose some magic word that will be trigger it's execution
