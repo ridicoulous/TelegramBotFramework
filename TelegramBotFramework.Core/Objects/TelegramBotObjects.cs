@@ -174,7 +174,7 @@ namespace TelegramBotFramework.Core.Objects
 
     public class CommandEventArgs
     {
-        public TelegramBotDbContext DatabaseInstance { get; set; }
+        public ITelegramBotDbContext DatabaseInstance { get; set; }
         public TelegramBotUser SourceUser { get; set; }
         public string Parameters { get; set; }
         public string Target { get; set; } //groupid, userid
@@ -185,7 +185,7 @@ namespace TelegramBotFramework.Core.Objects
 
     public class CallbackEventArgs
     {
-        public TelegramBotDbContext DatabaseInstance { get; set; }
+        public ITelegramBotDbContext DatabaseInstance { get; set; }
         public TelegramBotUser SourceUser { get; set; }
         public string Parameters { get; set; }
         public string Target { get; set; } //groupid, userid

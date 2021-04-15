@@ -1,24 +1,21 @@
-﻿using Microsoft.Data.Sqlite;
+﻿//using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 using System.Collections.Generic;
 using System.IO;
+using TelegramBotFramework.Core.Interfaces;
 
 namespace TelegramBotFramework.Core.SQLiteDb
 {
-    public class TelegramBotDbContext : DbContext
+    public class TelegramBotDefaultSqLiteDbContext : DbContext, ITelegramBotDbContext
     {
         public readonly string _db;
         private readonly bool _inMemory;
-        public TelegramBotDbContext(string dbName)
+        public TelegramBotDefaultSqLiteDbContext(string dbName, bool inMemory)
         {
             _db = dbName;
-            _inMemory = false;
-        }
-        public TelegramBotDbContext()
-        {
-            _db = "telegrambot";
-            _inMemory = true;
+            _inMemory = inMemory;
         }
         public DbSet<TelegramBotUser> Users { get; set; }
         public DbSet<TelegramBotSetting> Settings { get; set; }
@@ -34,7 +31,7 @@ namespace TelegramBotFramework.Core.SQLiteDb
             }
             else
             {
-                optionsBuilder.UseSqlite($"Data Source={_db}.db");
+               optionsBuilder.UseSqlite($"Data Source={_db}.db");
             }
         }
     }

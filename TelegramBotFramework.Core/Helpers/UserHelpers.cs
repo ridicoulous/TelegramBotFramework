@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Telegram.Bot.Types;
+using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.Objects;
 using TelegramBotFramework.Core.SQLiteDb;
 using TelegramBotFramework.Core.SQLiteDb.Extensions;
@@ -11,9 +12,8 @@ namespace TelegramBotFramework.Core.Helpers
 {
     public static class UserHelper
     {
-        public static TelegramBotUser GetTelegramUser(TelegramBotDbContext db, int adminId, Update update = null, InlineQuery query = null, CallbackQuery cbQuery = null, bool logPoint = true)
-        {
-            var users = db.Users.AsNoTracking().ToList();
+        public static TelegramBotUser GetTelegramUser(ITelegramBotDbContext db, int adminId, Update update = null, InlineQuery query = null, CallbackQuery cbQuery = null, bool logPoint = true)
+        {           
 
             var from = update?.Message.From ?? query?.From ?? cbQuery?.From;
             if (from == null) return null;
@@ -22,7 +22,7 @@ namespace TelegramBotFramework.Core.Helpers
                 FirstSeen = DateTime.Now,
                 Points = 0,
                 Debt = 0,
-                IsBotAdmin = false, //Program.LoadedSetting.TelegramDefaultAdminUserId == from.Id,
+                IsBotAdmin = false,
                 UserId = from.Id
             };
             u.UserName = from.Username;

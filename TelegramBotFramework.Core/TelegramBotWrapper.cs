@@ -24,7 +24,16 @@ using TelegramBotFramework.Core.SQLiteDb;
 
 namespace TelegramBotFramework.Core
 {
-    public class TelegramBotWrapper : ITelegramBotWrapper
+    public class TelegramBotWrapper : TelegramBotWrapperWithDb<TelegramBotDefaultSqLiteDbContext>
+    {
+        public TelegramBotWrapper(ITelegramBotOptions options) : base(options, ()=> new TelegramBotDefaultSqLiteDbContext(options.Alias,options.InMemoryDb))
+        {
+        }
+    }
+
+
+    public abstract class TelegramBotWrapperWithDb<TDbContext> : ITelegramBotWrapper<TDbContext>, ITelegramBotWrapper
+         where TDbContext : DbContext, ITelegramBotDbContext
     {
         public static string RootDirectory { get; set; } = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
@@ -45,79 +54,61 @@ namespace TelegramBotFramework.Core
         public Dictionary<CallbackCommand, CallbackCommandMethod> CallbackCommands = new Dictionary<CallbackCommand, CallbackCommandMethod>();
         public Dictionary<TelegramBotModule, Type> Modules = new Dictionary<TelegramBotModule, Type>();
         public TelegramBotLogger Log;
-        public TelegramBotDbContext Db;
+        public TDbContext Db => DbContextFactory();
         public TelegramBotSetting LoadedSetting;
         public ModuleMessenger Messenger = new ModuleMessenger();
         public TelegramBotClient Bot { get; private set; }
         internal static User Me = null;
-        public IServiceProvider ServiceProvider;
+   
 
         public bool IsSurveyInitiated { get; set; }
-        private readonly string _paymentToken;
-        private readonly bool UserMustBeApprooved;
-        private readonly string _webHookUrl;
-        public virtual void SeedDb(TelegramBotDbContext db, params int[] admins)
+        
+        public virtual void SeedBotAdmins(params int[] admins)
         {
-            if (!db.Users.AsNoTracking().ToList().Any(c => c.UserId == LoadedSetting.TelegramDefaultAdminUserId))
+            try
             {
-                using (var tx = db.Database.BeginTransaction())
+                foreach (var u in admins)
                 {
-                    try
-                    {
-
-                        foreach (var u in admins)
-                        {
-                            db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = u, FirstSeen = DateTime.UtcNow });
-                        }
-                        db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = LoadedSetting.TelegramDefaultAdminUserId, FirstSeen = DateTime.UtcNow });
-
-
-                        db.SaveChanges();
-                        tx.Commit();
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Write($"Saving admin error: {ex}", LogLevel.Error, null, "error.log");
-                    }
+                    Db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = u, FirstSeen = DateTime.UtcNow });
                 }
-
+                Db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = LoadedSetting.TelegramDefaultAdminUserId, FirstSeen = DateTime.UtcNow });
+                Db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                Log.Write($"Saving admin error: {ex}", LogLevel.Error, null, "error.log");
             }
         }
-
+        protected readonly ITelegramBotOptions Options;
         /// <summary>
         /// Constructor. You may inject IServiceProvider to freely use you registered services in your modules
         /// </summary>
         /// <param name="key"></param>
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
-        /// <param name="alias"></param>        
-        public TelegramBotWrapper(string key, int adminId, HttpClient httpClient=null, IServiceProvider serviceProvider = null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = "", string webHookUrl = null, bool shouldUseInMemoryDb = false)
+        /// <param name="alias"></param>       
+        protected Func<TDbContext> DbContextFactory;
+    
+        public TelegramBotWrapperWithDb(ITelegramBotOptions options, Func<TDbContext> contextFactory)
         {
-            if (!String.IsNullOrEmpty(webHookUrl))
+            DbContextFactory = contextFactory;
+            Options = options;          
+            if (!String.IsNullOrEmpty(options.Directory))
             {
-                _webHookUrl = webHookUrl;
-            }
-            if (!String.IsNullOrEmpty(dir))
-            {
-                RootDirectory = dir;
+                RootDirectory = options.Directory;
             }
 
-            UserMustBeApprooved = needNewUserApproove;
-            _paymentToken = paymentToken;
-            ServiceProvider = serviceProvider;
             if (!Directory.Exists(Path.Combine(RootDirectory)))
             {
                 Directory.CreateDirectory(Path.Combine(RootDirectory));
             }
-            Log = new TelegramBotLogger(Path.Combine(RootDirectory, "Logs-" + alias));
-            var setting = new TelegramBotSetting() { Alias = alias, TelegramDefaultAdminUserId = adminId, TelegramBotAPIKey = key };
+            Log = new TelegramBotLogger(Path.Combine(RootDirectory, "Logs-" + Options.Alias));
+            var setting = new TelegramBotSetting() { Alias = options.Alias, TelegramDefaultAdminUserId = Options.AdminId, TelegramBotAPIKey = Options.Key };
             LoadedSetting = setting;
 
             try
             {
-                Db = shouldUseInMemoryDb ? new TelegramBotDbContext() : new TelegramBotDbContext(Path.Combine(RootDirectory, alias));
-                Db.Database.EnsureCreated();
-                SeedDb(Db);
+                Db.Database.EnsureCreated();        
             }
             catch (Exception ex)
             {
@@ -128,10 +119,11 @@ namespace TelegramBotFramework.Core
             Messenger.MessageSent += MessengerOnMessageSent;
             AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
 
-            //            var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-" + alias);
+            //var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-" + alias);
 
             //WatchForNewModules(telegramBotModuleDir);
         }
+      
         private void WatchForNewModules(string path)
         {
             if (!Directory.Exists(path))
@@ -186,10 +178,6 @@ namespace TelegramBotFramework.Core
                     var tAtt = type.GetCustomAttributes<TelegramBotModule>().FirstOrDefault();
                     Log.WriteLine($"Loading {type.GetType().Name} ({tAtt.Name}) module");
                     var currentBot = this.GetType();
-                    //if(currentBot.BaseType!=null&&!(currentBot.BaseType !=  typeof(TelegramBotWrapper)))
-                    //{
-                    //    continue;
-                    //}
                     object instance = null;
                     //if (currentBot.BaseType != typeof(TelegramBotWrapper))
                     //{
@@ -218,7 +206,7 @@ namespace TelegramBotFramework.Core
                         }
                         Log.WriteLine($"Finded constructor {constructor.Name}, invoking it for loading {tAtt.Name} at {this.GetType().FullName}");
                         instance = constructor.Invoke(new object[] { this });
-                    }                  
+                    }
                     if (instance == null)
                     {
                         Log.WriteLine($"{tAtt.Name}not loaded cause can not instantiate by finding contructor");
@@ -296,7 +284,7 @@ namespace TelegramBotFramework.Core
             {
                 //Load in the modules              
                 LoadModules();
-                if (String.IsNullOrEmpty(_webHookUrl))
+                if (String.IsNullOrEmpty(Options.WebHookUrl))
                 {
                     Bot.DeleteWebhookAsync();
                     Bot.OnUpdate += BotOnUpdateReceived;
@@ -308,8 +296,8 @@ namespace TelegramBotFramework.Core
                 }
                 else
                 {
-                    var uri = new Uri(_webHookUrl);
-                    Bot.SetWebhookAsync(_webHookUrl);
+                    var uri = new Uri(Options.WebHookUrl);
+                    Bot.SetWebhookAsync(Options.WebHookUrl);
                 }
                 Me = Bot.GetMeAsync().Result;
             }
@@ -663,13 +651,13 @@ namespace TelegramBotFramework.Core
         }
         public void SendInvoice(InvoiceDto invoice)
         {
-            if (String.IsNullOrEmpty(_paymentToken))
+            if (String.IsNullOrEmpty(Options.PaymentToken))
             {
                 SendMessageToAll("Need to provide payment token");
                 return;
             }
             UserInvoices.Add(invoice);
-            Bot.SendInvoiceAsync((int)invoice.UserId, invoice.Title, invoice.Description, invoice.PayloadId, _paymentToken, invoice.PayloadId, invoice.Currency, invoice.Goods);
+            Bot.SendInvoiceAsync((int)invoice.UserId, invoice.Title, invoice.Description, invoice.PayloadId, Options.PaymentToken, invoice.PayloadId, invoice.Currency, invoice.Goods);
         }
         internal void Handle(Update update)
         {
@@ -699,7 +687,7 @@ namespace TelegramBotFramework.Core
                 Log.WriteLine(chat, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
                 Log.WriteLine(msg, LogLevel.Info, ConsoleColor.White, "telegram.log");
 
-                if (UserMustBeApprooved)
+                if (Options.ShouldApprooveNewUsers)
                 {
                     if (!user.IsBotAdmin)
                     {

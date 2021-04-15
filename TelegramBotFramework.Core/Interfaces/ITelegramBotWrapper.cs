@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,18 +9,22 @@ using TelegramBotFramework.Core.SQLiteDb;
 
 namespace TelegramBotFramework.Core.Interfaces
 {
+    public interface ITelegramBotWrapper<TDbContext> : ITelegramBotWrapper 
+        where TDbContext : DbContext,  ITelegramBotDbContext
+    {
+       
+    }
     public interface ITelegramBotWrapper
     {
         void Run();
-        void SeedDb(TelegramBotDbContext db, params int[] adminIds);
+        void SeedBotAdmins(params int[] adminIds);
         Dictionary<long, Queue<SurveyAttribute>> UsersWaitingAnswers { get; set; }
         UsersSurveys CurrentUserUpdatingObjects { get; set; }
         bool IsSurveyInitiated { get; set; }
-        TelegramBotClient Bot { get;  }
-        void SendMessageToAll(string message, bool onlyAdmins = false, bool onlydev=true, bool isSilent=false);
+        TelegramBotClient Bot { get; }
+        void SendMessageToAll(string message, bool onlyAdmins = false, bool onlydev = true, bool isSilent = false);
         void SendMessage(string message, long userId, bool isSilent);
         Task SendMessageAsync(string message, long userId, bool isSilent);
-
 
     }
 }
