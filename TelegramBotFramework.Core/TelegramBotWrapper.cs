@@ -31,6 +31,12 @@ namespace TelegramBotFramework.Core
         }
     }
 
+    public class TelegramBotWrapperWithUserDb<TDbContext> : TelegramBotWrapperWithDb<TDbContext> where TDbContext : DbContext, ITelegramBotDbContext
+    {
+        public TelegramBotWrapperWithUserDb(ITelegramBotOptions options,Func<TDbContext> factory) : base(options,factory)
+        {
+        }
+    }
 
     public abstract class TelegramBotWrapperWithDb<TDbContext> : ITelegramBotWrapper<TDbContext>, ITelegramBotWrapper
          where TDbContext : DbContext, ITelegramBotDbContext
@@ -55,6 +61,8 @@ namespace TelegramBotFramework.Core
         public Dictionary<TelegramBotModule, Type> Modules = new Dictionary<TelegramBotModule, Type>();
         public TelegramBotLogger Log;
         public TDbContext Db => DbContextFactory();
+        public Func<TDbContext> DbContextFactory;
+
         public TelegramBotSetting LoadedSetting;
         public ModuleMessenger Messenger = new ModuleMessenger();
         public TelegramBotClient Bot { get; private set; }
@@ -87,7 +95,6 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>       
-        protected Func<TDbContext> DbContextFactory;
     
         public TelegramBotWrapperWithDb(ITelegramBotOptions options, Func<TDbContext> contextFactory)
         {
@@ -346,8 +353,7 @@ namespace TelegramBotFramework.Core
                 {
                     var eArgs = new CallbackEventArgs()
                     {
-                        SourceUser = user,
-                        DatabaseInstance = Db,
+                        SourceUser = user,                     
                         Parameters = args,
                         Target = query.Message.Chat.Id.ToString(),
                         Messenger = Messenger,
@@ -395,7 +401,6 @@ namespace TelegramBotFramework.Core
                     var eArgs = new CallbackEventArgs()
                     {
                         SourceUser = user,
-                        DatabaseInstance = Db,
                         Parameters = args,
                         Target = query.Message.Chat.Id.ToString(),
                         Messenger = Messenger,
@@ -494,8 +499,7 @@ namespace TelegramBotFramework.Core
             {
                 var response = c.Value.Invoke(new CommandEventArgs
                 {
-                    SourceUser = user,
-                    DatabaseInstance = Db,
+                    SourceUser = user,                    
                     Parameters = com[1],
                     Target = "",
                     Messenger = Messenger,
@@ -772,7 +776,7 @@ namespace TelegramBotFramework.Core
                             var eArgs = new CommandEventArgs
                             {
                                 SourceUser = user,
-                                DatabaseInstance = Db,
+                              
                                 Parameters = args[1],
                                 Target = update.Message.Chat.Id.ToString(),
                                 Messenger = Messenger,

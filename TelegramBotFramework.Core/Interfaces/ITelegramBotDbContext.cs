@@ -8,6 +8,7 @@ namespace TelegramBotFramework.Core.Interfaces
     {
         DbSet<TelegramBotUser> Users { get; set; }
         DbSet<TelegramBotSetting> Settings { get; set; }
-        DbSet<TelegramBotGroup> Groups { get; set; }     
+        DbSet<TelegramBotGroup> Groups { get; set; }
+        void SaveChanges();
     }
 }

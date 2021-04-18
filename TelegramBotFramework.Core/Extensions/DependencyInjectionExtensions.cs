@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Builder;
 using TelegramBotFramework.Core.Interfaces;
 using System.Net.Http;
+using System;
+using Microsoft.EntityFrameworkCore;
 
 namespace TelegramBotFramework.Core.Extensions
 {
@@ -11,11 +13,20 @@ namespace TelegramBotFramework.Core.Extensions
         {
             services.AddSingleton(instance);
         }
-        public static void AddTelegramBot(this IServiceCollection services, string telegramBotKey, int adminId, HttpClient httpClient=null, string alias = "TelegramBotFramework", bool needNewUserApproove = false, string paymentToken = null, string dir = "", string webHookUrl = null, bool shouldUseInMemoryDb = false)
+        public static void AddTelegramBot(this IServiceCollection services, ITelegramBotOptions options)
         {
             services.AddSingleton(serviceProvider =>
             {
-                var instance = new TelegramBotWrapper(telegramBotKey, adminId, httpClient, serviceProvider, alias,needNewUserApproove,paymentToken,dir,webHookUrl,shouldUseInMemoryDb);
+                var instance = new TelegramBotWrapper(options);
+                return instance;
+            });
+        }
+        public static void AddTelegramBotWithDbContext<TDbContext>(this IServiceCollection services, ITelegramBotOptions options, Func<TDbContext> contextFactory) 
+            where TDbContext : DbContext, ITelegramBotDbContext
+        {
+            services.AddSingleton(serviceProvider =>
+            {
+                var instance = new TelegramBotWrapperWithUserDb<TDbContext>(options,contextFactory); 
                 return instance;
             });
         }

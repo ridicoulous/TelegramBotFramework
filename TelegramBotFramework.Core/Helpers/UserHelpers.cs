@@ -40,9 +40,9 @@ namespace TelegramBotFramework.Core.Helpers
             return u;
         }
 
-        public static TelegramBotUser GetTarget(CommandEventArgs args)
+        public static TelegramBotUser GetTarget(this ITelegramBotDbContext db, CommandEventArgs args)
         {
-            return args.Message.GetTarget(args.Parameters, args.SourceUser, args.DatabaseInstance);
+            return args.Message.GetTarget(args.Parameters, args.SourceUser, db);
         }
     }
 }

@@ -75,10 +75,10 @@ namespace TelegramBotFramework.DefaultModules
 
         #region Chat Commands
 
-        [ChatCommand(Triggers = new[] { "addbotadmin", "addadmin" }, DevOnly = true, DontSearchInline =true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
+        [ChatCommand(Triggers = new[] { "addbotadmin", "addadmin" }, DevOnly = true, DontSearchInline = true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
         public CommandResponse AddBotAdmin(CommandEventArgs args)
         {
-            var target = UserHelper.GetTarget(args);
+            var target = BotWrapper.Db.GetTarget(args);
             if (target != null && target.ID != args.SourceUser.ID)
             {
                 target.IsBotAdmin = true;
@@ -90,7 +90,7 @@ namespace TelegramBotFramework.DefaultModules
         [ChatCommand(Triggers = new[] { "rembotadmin", "remadmin" }, DevOnly = true, DontSearchInline = true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
         public CommandResponse RemoveBotAdmin(CommandEventArgs args)
         {
-            var target = UserHelper.GetTarget(args);
+            var target = BotWrapper.Db.GetTarget(args);
             if (target != null && target.ID != args.SourceUser.ID)
             {
                 target.IsBotAdmin = false;

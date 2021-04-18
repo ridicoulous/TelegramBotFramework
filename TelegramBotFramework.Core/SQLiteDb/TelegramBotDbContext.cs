@@ -34,5 +34,10 @@ namespace TelegramBotFramework.Core.SQLiteDb
                optionsBuilder.UseSqlite($"Data Source={_db}.db");
             }
         }
+
+        void ITelegramBotDbContext.SaveChanges()
+        {
+            this.SaveChanges();
+        }
     }
 }
