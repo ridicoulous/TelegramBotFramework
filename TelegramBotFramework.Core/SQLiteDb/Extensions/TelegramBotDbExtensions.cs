@@ -30,7 +30,10 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
                     db.Users.Update(u);
                     db.SaveChanges();
                 }
-                catch { }
+                catch(Exception e)
+                {
+                
+                }
             }
         }
 
@@ -84,11 +87,11 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
 
         public static void Save(this TelegramBotSetting set, ITelegramBotDbContext db)
         {
-            if (set.ID == null || !ExistsInDb(set, db))
+            if (set.Id == 0 || !ExistsInDb(set, db))
             {             
                 db.Settings.Add(set);
                 db.SaveChanges();
-                set.ID = db.Settings.FirstOrDefault(c => c.Alias == set.Alias).ID;
+                set.Id = db.Settings.FirstOrDefault(c => c.Alias == set.Alias).Id;
             }
             else
             {               
@@ -99,7 +102,7 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
 
         public static bool ExistsInDb(this TelegramBotSetting set, ITelegramBotDbContext db)
         {
-            return db.Settings.Any(c => c.ID == set.ID);
+            return db.Settings.Any(c => c.Id == set.Id);
         }
 
         public static void RemoveFromDb(this TelegramBotSetting set, ITelegramBotDbContext db)

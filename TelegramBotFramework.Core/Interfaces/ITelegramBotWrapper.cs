@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ namespace TelegramBotFramework.Core.Interfaces
     }
     public interface ITelegramBotWrapper
     {
+        ConcurrentDictionary<long, KeyValuePair<Type, IEditableEntity>> UserEditingEntity { get; set; }
         void Run();
         void SeedBotAdmins(params int[] adminIds);
         Dictionary<long, Queue<SurveyAttribute>> UsersWaitingAnswers { get; set; }

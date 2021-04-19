@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -60,17 +61,16 @@ namespace TelegramBotFramework.Core
         public Dictionary<CallbackCommand, CallbackCommandMethod> CallbackCommands = new Dictionary<CallbackCommand, CallbackCommandMethod>();
         public Dictionary<TelegramBotModule, Type> Modules = new Dictionary<TelegramBotModule, Type>();
         public TelegramBotLogger Log;
-        public TDbContext Db => DbContextFactory();
+        public TDbContext Db { get; private set; }
         public Func<TDbContext> DbContextFactory;
 
         public TelegramBotSetting LoadedSetting;
         public ModuleMessenger Messenger = new ModuleMessenger();
         public TelegramBotClient Bot { get; private set; }
         internal static User Me = null;
-   
-
         public bool IsSurveyInitiated { get; set; }
-        
+        public ConcurrentDictionary<long, KeyValuePair<Type, IEditableEntity>> UserEditingEntity { get; set; }
+
         public virtual void SeedBotAdmins(params int[] admins)
         {
             try
@@ -99,6 +99,7 @@ namespace TelegramBotFramework.Core
         public TelegramBotWrapperWithDb(ITelegramBotOptions options, Func<TDbContext> contextFactory)
         {
             DbContextFactory = contextFactory;
+            Db = DbContextFactory();
             Options = options;          
             if (!String.IsNullOrEmpty(options.Directory))
             {
@@ -115,7 +116,17 @@ namespace TelegramBotFramework.Core
 
             try
             {
-                Db.Database.EnsureCreated();        
+                
+               //var t = DbContextFactory().Database.EnsureCreated();
+               // if (!t)
+               // {
+
+               // }
+                using(var db = DbContextFactory())
+                {
+                    db.Database.EnsureCreated();
+                    db.SaveChanges();
+                }
             }
             catch (Exception ex)
             {
@@ -204,7 +215,7 @@ namespace TelegramBotFramework.Core
                     }
                     if (instance == null)
                     {
-                        var constructor = type.GetConstructor(new[] { typeof(TelegramBotWrapper) });
+                        var constructor = type.GetConstructor(new[] { typeof(ITelegramBotWrapper),typeof(ITelegramBotWrapper<>),typeof(TelegramBotWrapper), typeof(TelegramBotWrapperWithDb<>), typeof(TelegramBotWrapperWithUserDb<>) });
 
                         if (constructor == null)
                         {

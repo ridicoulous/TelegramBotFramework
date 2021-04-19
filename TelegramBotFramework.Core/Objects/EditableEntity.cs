@@ -7,16 +7,17 @@ using TelegramBotFramework.Core.Interfaces;
 
 namespace TelegramBotFramework.Core.Objects
 {
-    public class EditableEntity<TId> : IEditableEntity<TId>
+    public class EditableEntity<TId> : EditableEntity,IEditableEntity
     {
-        public EditableEntity(TId id, Dictionary<string, object> entityFieldsAndValues)
+        public EditableEntity(TId id, string readableEntityNameForEditing):base(readableEntityNameForEditing)
         {
             Id = id;
-            EntityFieldsAndValues = entityFieldsAndValues ?? throw new ArgumentNullException(nameof(entityFieldsAndValues));
+           // EntityFieldsAndValues = entityFieldsAndValues ?? throw new ArgumentNullException(nameof(entityFieldsAndValues));
         }
 
         public TId Id { get; set; }
-        public Dictionary<string, object> EntityFieldsAndValues { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        
+        object IEditableEntity.Id { get => Id; set => Id= (TId)value; }
     }
     public class EditableEntity : IEditableEntity
     {
@@ -26,5 +27,6 @@ namespace TelegramBotFramework.Core.Objects
         }
 
         public string ReadableEntityNameForEditing { get; set; }
+        public object Id { get; set; }
     }
 }

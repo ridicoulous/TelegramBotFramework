@@ -8,6 +8,7 @@ using TelegramBotFramework.Core.Extensions;
 using TelegramBotFramework.Core.Helpers;
 using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.Objects;
+using TelegramBotFramework.Core.SQLiteDb;
 
 namespace TelegramBotFramework.Core.DefaultModules
 {
@@ -43,7 +44,9 @@ namespace TelegramBotFramework.Core.DefaultModules
             {
                 var entity = db.Model.FindEntityType(entry.ReadableEntityNameForEditing);
                 var t = entity.FindPrimaryKey();
-                
+                db.Set<TelegramBotUser>();
+                db.Update(entry);
+                db.UpdateEntity(entity.ClrType,entry);
                 //db.Model.GetRelationalModel().Tables.ToList()[0].Columns.ToList()[0].va
             }
             //var type =typeof(TDbContext).GetProperty(entity.ReadableEntityNameForEditing);

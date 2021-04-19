@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using TelegramBotFramework.Core.Interfaces;
 
 namespace TelegramBotFramework.Core.SQLiteDb
 {
-    public class TelegramBotSetting
+    public class TelegramBotSetting:IEditableEntity<int>
     {
         /// <summary>
         /// DB Id of the setting
         /// </summary>
-        public int? ID { get; set; }
+        public int Id { get; set; }
+
         /// <summary>
         /// Settings alias, can be loaded using launch parameters
         /// </summary>
@@ -22,5 +24,7 @@ namespace TelegramBotFramework.Core.SQLiteDb
         /// Your Telegram Bot API Token
         /// </summary>
         public string TelegramBotAPIKey { get; set; }
+        public string ReadableEntityNameForEditing { get; set; } = "BotSetting";
+        object IEditableEntity.Id { get => Id; set => Id=int.Parse(value.ToString()); }
     }
 }

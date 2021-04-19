@@ -7,13 +7,13 @@ namespace TelegramBotFramework.Core.Interfaces
     /// <summary>
     /// marker interface for entities editing through bot
     /// </summary>
-    public interface IEditableEntity<TId>
+    public interface IEditableEntity<TId>:IEditableEntity
     {
-        TId Id { get; set; }        
-        Dictionary<string,object> EntityFieldsAndValues { get; set; }
+        new TId Id { get; set; }       
     }
     public interface IEditableEntity
     {       
+        object Id { get; set; }
         string ReadableEntityNameForEditing { get; set; }
     }
 
