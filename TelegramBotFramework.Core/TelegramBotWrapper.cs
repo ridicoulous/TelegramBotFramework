@@ -116,12 +116,6 @@ namespace TelegramBotFramework.Core
 
             try
             {
-                
-               //var t = DbContextFactory().Database.EnsureCreated();
-               // if (!t)
-               // {
-
-               // }
                 using(var db = DbContextFactory())
                 {
                     db.Database.EnsureCreated();
@@ -196,6 +190,7 @@ namespace TelegramBotFramework.Core
                     var tAtt = type.GetCustomAttributes<TelegramBotModule>().FirstOrDefault();
                     Log.WriteLine($"Loading {type.GetType().Name} ({tAtt.Name}) module");
                     var currentBot = this.GetType();
+
                     object instance = null;
                     //if (currentBot.BaseType != typeof(TelegramBotWrapper))
                     //{
@@ -205,12 +200,24 @@ namespace TelegramBotFramework.Core
                         var paramss = c.GetParameters();
                         if (paramss.Length == 1)
                         {
-                            if (paramss[0].ParameterType == currentBot)
-                            {
-                                Log.WriteLine($"Finded constructor, invoking it for loading {tAtt.Name} at {this.GetType().FullName}");
+                            Log.WriteLine($"Finded constructor, invoking it for loading {tAtt.Name} at {this.GetType().FullName}");
+                            // Type[] typeArgs =  this.GetType().GetInterfaces();
+                            var genericArgument = currentBot.BaseType.BaseType.GetGenericArguments().FirstOrDefault();
+                            
+                                Type constructed = type.MakeGenericType(genericArgument);
+                            // Construct the type Dictionary<String, Example>.
+                            var constr = constructed.GetConstructors();
 
-                                instance = c.Invoke(new object[] { this });
-                            }
+                            instance = constr.FirstOrDefault()?.Invoke(new[] { this as TelegramBotWrapperWithDb<TelegramBotDefaultSqLiteDbContext> });
+                                //Activator.CreateInstance(constructed,this);
+                         //   instance = c.Invoke(new object[] { this });
+                           // instance = type.MakeGenericType(currentBot);
+                            //if ( currentBot.IsAssignableFrom(paramss[0].ParameterType))
+                            //{
+                            //    Log.WriteLine($"Finded constructor, invoking it for loading {tAtt.Name} at {this.GetType().FullName}");
+
+                            //    instance = c.Invoke(new object[] { this });
+                            //}
                         }
                     }
                     if (instance == null)

@@ -14,10 +14,11 @@ namespace TelegramBotFramework.Core.DefaultModules
 {
 
     [TelegramBotModule(Author = "ridicoulous", Name = "Base", Version = "1.0")]
-    public class CrudBotModule<TDbContext> : TelegramBotModuleBase<TelegramBotWrapperWithUserDb<TDbContext>> 
+    public class CrudBotModule<TDbContext,TBot> : TelegramBotModuleBase<TBot> 
+        where TBot: TelegramBotWrapperWithUserDb<TDbContext>
         where TDbContext : DbContext, ITelegramBotDbContext
     {
-        public CrudBotModule(TelegramBotWrapperWithUserDb<TDbContext> wrapper) : base(wrapper)
+        public CrudBotModule(TBot wrapper) : base(wrapper)
         {
 
         }
