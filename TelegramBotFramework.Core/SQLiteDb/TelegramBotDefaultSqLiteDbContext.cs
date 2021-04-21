@@ -8,7 +8,7 @@ using TelegramBotFramework.Core.Interfaces;
 
 namespace TelegramBotFramework.Core.SQLiteDb
 {
-    public class TelegramBotDefaultSqLiteDbContext : DbContext, ITelegramBotDbContext
+    public class TelegramBotDefaultSqLiteDbContext : TelegramBotDbContext
     {
         public readonly string _db;
         private readonly bool _inMemory;
@@ -17,10 +17,6 @@ namespace TelegramBotFramework.Core.SQLiteDb
             _db = dbName;
             _inMemory = inMemory;
         }
-        public DbSet<TelegramBotUser> Users { get; set; }
-        public DbSet<TelegramBotSetting> Settings { get; set; }
-        public DbSet<TelegramBotGroup> Groups { get; set; }
-
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (_inMemory)
@@ -35,9 +31,5 @@ namespace TelegramBotFramework.Core.SQLiteDb
             }
         }
 
-        void ITelegramBotDbContext.SaveChanges()
-        {
-            this.SaveChanges();
-        }
     }
 }

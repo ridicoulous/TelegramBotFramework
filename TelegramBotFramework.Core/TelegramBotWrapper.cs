@@ -25,22 +25,8 @@ using TelegramBotFramework.Core.SQLiteDb;
 
 namespace TelegramBotFramework.Core
 {
-    public class TelegramBotWrapper : TelegramBotWrapperWithDb<TelegramBotDefaultSqLiteDbContext>
-    {
-        public TelegramBotWrapper(ITelegramBotOptions options) : base(options, ()=> new TelegramBotDefaultSqLiteDbContext(options.Alias,options.InMemoryDb))
-        {
-        }
-    }
 
-    public class TelegramBotWrapperWithUserDb<TDbContext> : TelegramBotWrapperWithDb<TDbContext> where TDbContext : DbContext, ITelegramBotDbContext
-    {
-        public TelegramBotWrapperWithUserDb(ITelegramBotOptions options,Func<TDbContext> factory) : base(options,factory)
-        {
-        }
-    }
-
-    public abstract class TelegramBotWrapperWithDb<TDbContext> : ITelegramBotWrapper<TDbContext>, ITelegramBotWrapper
-         where TDbContext : DbContext, ITelegramBotDbContext
+    public abstract class TelegramBotWrapper : ITelegramBotWrapper
     {
         public static string RootDirectory { get; set; } = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
@@ -61,8 +47,8 @@ namespace TelegramBotFramework.Core
         public Dictionary<CallbackCommand, CallbackCommandMethod> CallbackCommands = new Dictionary<CallbackCommand, CallbackCommandMethod>();
         public Dictionary<TelegramBotModule, Type> Modules = new Dictionary<TelegramBotModule, Type>();
         public TelegramBotLogger Log;
-        public TDbContext Db { get; private set; }
-        public Func<TDbContext> DbContextFactory;
+        public TelegramBotDbContext Db { get; private set; }
+        public Func<TelegramBotDbContext> DbContextFactory { get; private set; }
 
         public TelegramBotSetting LoadedSetting;
         public ModuleMessenger Messenger = new ModuleMessenger();
@@ -70,6 +56,9 @@ namespace TelegramBotFramework.Core
         internal static User Me = null;
         public bool IsSurveyInitiated { get; set; }
         public ConcurrentDictionary<long, KeyValuePair<Type, IEditableEntity>> UserEditingEntity { get; set; }
+
+
+
 
         public virtual void SeedBotAdmins(params int[] admins)
         {
@@ -88,19 +77,10 @@ namespace TelegramBotFramework.Core
             }
         }
         protected readonly ITelegramBotOptions Options;
-        /// <summary>
-        /// Constructor. You may inject IServiceProvider to freely use you registered services in your modules
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="adminId"></param>
-        /// <param name="serviceProvider"></param>
-        /// <param name="alias"></param>       
-    
-        public TelegramBotWrapperWithDb(ITelegramBotOptions options, Func<TDbContext> contextFactory)
+        public TelegramBotWrapper(ITelegramBotOptions options, Func<TelegramBotDbContext> factory = null)
         {
-            DbContextFactory = contextFactory;
-            Db = DbContextFactory();
-            Options = options;          
+
+            Options = options;
             if (!String.IsNullOrEmpty(options.Directory))
             {
                 RootDirectory = options.Directory;
@@ -116,10 +96,13 @@ namespace TelegramBotFramework.Core
 
             try
             {
-                using(var db = DbContextFactory())
+                Db = new TelegramBotDefaultSqLiteDbContext(options.Alias, options.InMemoryDb);
+                Db.Database.EnsureCreated();
+                Db.SaveChanges();
+                DbContextFactory = factory;
+                if (DbContextFactory == null)
                 {
-                    db.Database.EnsureCreated();
-                    db.SaveChanges();
+                    DbContextFactory = () => Db;
                 }
             }
             catch (Exception ex)
@@ -135,7 +118,7 @@ namespace TelegramBotFramework.Core
 
             //WatchForNewModules(telegramBotModuleDir);
         }
-      
+
         private void WatchForNewModules(string path)
         {
             if (!Directory.Exists(path))
@@ -183,46 +166,58 @@ namespace TelegramBotFramework.Core
         {
             try
             {
-                foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
+                foreach (var loadingBotModule in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
                    && myType.IsDefined(typeof(TelegramBotModule))))
                 {
 
-                    var tAtt = type.GetCustomAttributes<TelegramBotModule>().FirstOrDefault();
-                    Log.WriteLine($"Loading {type.GetType().Name} ({tAtt.Name}) module");
+                    var tAtt = loadingBotModule.GetCustomAttributes<TelegramBotModule>().FirstOrDefault();
+                    Log.WriteLine($"Loading {loadingBotModule.GetType().Name} ({tAtt.Name}) module");
                     var currentBot = this.GetType();
 
                     object instance = null;
+                    if (loadingBotModule.ContainsGenericParameters)
+                    {
+                        var createGeneric = loadingBotModule.MakeGenericType(currentBot);
+                        var constr = createGeneric.GetConstructors();
+
+                         instance = constr.FirstOrDefault()?.Invoke(new[] { this });
+                    }
                     //if (currentBot.BaseType != typeof(TelegramBotWrapper))
                     //{
-                    var constructs = type.GetConstructors();
-                    foreach (var c in constructs)
-                    {
-                        var paramss = c.GetParameters();
-                        if (paramss.Length == 1)
-                        {
-                            Log.WriteLine($"Finded constructor, invoking it for loading {tAtt.Name} at {this.GetType().FullName}");
-                            // Type[] typeArgs =  this.GetType().GetInterfaces();
-                            var genericArgument = currentBot.BaseType.BaseType.GetGenericArguments().FirstOrDefault();
-                            
-                                Type constructed = type.MakeGenericType(genericArgument);
-                            // Construct the type Dictionary<String, Example>.
-                            var constr = constructed.GetConstructors();
+                    //var constructs = loadingBotModule.GetConstructors();
+                    //foreach (var c in constructs)
+                    //{
 
-                            instance = constr.FirstOrDefault()?.Invoke(new[] { this as TelegramBotWrapperWithDb<TelegramBotDefaultSqLiteDbContext> });
-                                //Activator.CreateInstance(constructed,this);
-                         //   instance = c.Invoke(new object[] { this });
-                           // instance = type.MakeGenericType(currentBot);
-                            //if ( currentBot.IsAssignableFrom(paramss[0].ParameterType))
-                            //{
-                            //    Log.WriteLine($"Finded constructor, invoking it for loading {tAtt.Name} at {this.GetType().FullName}");
+                    //    var paramss = c.GetParameters();
+                    //    if (paramss.Length == 1)
+                    //    {
+                    //        if (tAtt.Name != "CrudModule")
+                    //        {
+                    //            break;
+                    //        }
+                    //        Log.WriteLine($"Finded constructor, invoking it for loading {tAtt.Name} at {this.GetType().FullName}");
+                    //        // Type[] typeArgs =  this.GetType().GetInterfaces();
+                    //        var genericArgument = currentBot.BaseType.BaseType.GetGenericArguments();
 
-                            //    instance = c.Invoke(new object[] { this });
-                            //}
-                        }
-                    }
+                    //        Type constructed = loadingBotModule.MakeGenericType(typeof(SimpleTelegramBot), typeof(TelegramBotDefaultSqLiteDbContext));
+                    //        // Construct the type Dictionary<String, Example>.
+                    //        var constr = constructed.GetConstructors();
+
+                    //        instance = constr.FirstOrDefault()?.Invoke(new[] { this });
+                    //        //Activator.CreateInstance(constructed,this);
+                    //        //   instance = c.Invoke(new object[] { this });
+                    //        // instance = type.MakeGenericType(currentBot);
+                    //        //if ( currentBot.IsAssignableFrom(paramss[0].ParameterType))
+                    //        //{
+                    //        //    Log.WriteLine($"Finded constructor, invoking it for loading {tAtt.Name} at {this.GetType().FullName}");
+
+                    //        //    instance = c.Invoke(new object[] { this });
+                    //        //}
+                    //    }
+                    //}
                     if (instance == null)
                     {
-                        var constructor = type.GetConstructor(new[] { typeof(ITelegramBotWrapper),typeof(ITelegramBotWrapper<>),typeof(TelegramBotWrapper), typeof(TelegramBotWrapperWithDb<>), typeof(TelegramBotWrapperWithUserDb<>) });
+                        var constructor = loadingBotModule.GetConstructor(new[] { currentBot });
 
                         if (constructor == null)
                         {
@@ -243,7 +238,7 @@ namespace TelegramBotFramework.Core
                         Log.WriteLine($"{tAtt.Name} has been already loaded. Rename it, if it is no dublicate");
                         continue;
                     }
-                    Modules.Add(tAtt, type);
+                    Modules.Add(tAtt, loadingBotModule);
 
                     foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatSurvey))))
                     {
@@ -270,7 +265,7 @@ namespace TelegramBotFramework.Core
                         Log.WriteLine($"Loaded ChatCommand {method.Name}\n\t Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)}", overrideColor: ConsoleColor.Green);
 
                     }
-                    foreach (var m in type.GetMethods().Where(x => x.IsDefined(typeof(CallbackCommand))))
+                    foreach (var m in loadingBotModule.GetMethods().Where(x => x.IsDefined(typeof(CallbackCommand))))
                     {
                         var att = m.GetCustomAttributes<CallbackCommand>().First();
                         if (CallbackCommands.ContainsKey(att))
@@ -371,7 +366,7 @@ namespace TelegramBotFramework.Core
                 {
                     var eArgs = new CallbackEventArgs()
                     {
-                        SourceUser = user,                     
+                        SourceUser = user,
                         Parameters = args,
                         Target = query.Message.Chat.Id.ToString(),
                         Messenger = Messenger,
@@ -517,7 +512,7 @@ namespace TelegramBotFramework.Core
             {
                 var response = c.Value.Invoke(new CommandEventArgs
                 {
-                    SourceUser = user,                    
+                    SourceUser = user,
                     Parameters = com[1],
                     Target = "",
                     Messenger = Messenger,
@@ -794,7 +789,7 @@ namespace TelegramBotFramework.Core
                             var eArgs = new CommandEventArgs
                             {
                                 SourceUser = user,
-                              
+
                                 Parameters = args[1],
                                 Target = update.Message.Chat.Id.ToString(),
                                 Messenger = Messenger,

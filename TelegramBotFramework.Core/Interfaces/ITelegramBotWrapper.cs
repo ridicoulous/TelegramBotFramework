@@ -9,17 +9,14 @@ using TelegramBotFramework.Core.Objects;
 using TelegramBotFramework.Core.SQLiteDb;
 
 namespace TelegramBotFramework.Core.Interfaces
-{
-    public interface ITelegramBotWrapper<TDbContext> : ITelegramBotWrapper 
-        where TDbContext : DbContext,  ITelegramBotDbContext
-    {
-       
-    }
+{  
     public interface ITelegramBotWrapper
     {
         ConcurrentDictionary<long, KeyValuePair<Type, IEditableEntity>> UserEditingEntity { get; set; }
         void Run();
         void SeedBotAdmins(params int[] adminIds);
+        TelegramBotDbContext Db { get; }
+        Func<TelegramBotDbContext> DbContextFactory { get; }
         Dictionary<long, Queue<SurveyAttribute>> UsersWaitingAnswers { get; set; }
         UsersSurveys CurrentUserUpdatingObjects { get; set; }
         bool IsSurveyInitiated { get; set; }

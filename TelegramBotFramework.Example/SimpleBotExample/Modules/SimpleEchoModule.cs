@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Telegram.Bot.Types.Enums;
+using TelegramBotFramework.Core.DefaultModules;
 using TelegramBotFramework.Core.Objects;
 
 namespace TelegramBotFramework.Example.SimpleBotExample.Modules

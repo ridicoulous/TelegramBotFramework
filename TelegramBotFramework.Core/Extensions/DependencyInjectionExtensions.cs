@@ -4,6 +4,7 @@ using TelegramBotFramework.Core.Interfaces;
 using System.Net.Http;
 using System;
 using Microsoft.EntityFrameworkCore;
+using TelegramBotFramework.Core.SQLiteDb;
 
 namespace TelegramBotFramework.Core.Extensions
 {
@@ -13,23 +14,23 @@ namespace TelegramBotFramework.Core.Extensions
         {
             services.AddSingleton(instance);
         }
-        public static void AddTelegramBot(this IServiceCollection services, ITelegramBotOptions options)
-        {
-            services.AddSingleton(serviceProvider =>
-            {
-                var instance = new TelegramBotWrapper(options);
-                return instance;
-            });
-        }
-        public static void AddTelegramBotWithDbContext<TDbContext>(this IServiceCollection services, ITelegramBotOptions options, Func<TDbContext> contextFactory) 
-            where TDbContext : DbContext, ITelegramBotDbContext
-        {
-            services.AddSingleton(serviceProvider =>
-            {
-                var instance = new TelegramBotWrapperWithUserDb<TDbContext>(options,contextFactory); 
-                return instance;
-            });
-        }
+        //public static void AddTelegramBot(this IServiceCollection services, ITelegramBotOptions options)
+        //{
+        //    services.AddSingleton(serviceProvider =>
+        //    {
+        //        var instance = new TelegramBotWrapper(options);
+        //        return instance;
+        //    });
+        //}
+        //public static void AddTelegramBotWithDbContext<TDbContext>(this IServiceCollection services, ITelegramBotOptions options, Func<TDbContext> contextFactory) 
+        //    where TDbContext : TelegramBotDbContext
+        //{
+        //    services.AddSingleton(serviceProvider =>
+        //    {
+        //        var instance = new TelegramBotWrapper(options,contextFactory); 
+        //        return instance;
+        //    });
+        //}
 
         public static void UseTelegramBot(this IApplicationBuilder app)
         {

@@ -13,10 +13,15 @@ using TelegramBotFramework.Core.SQLiteDb;
 namespace TelegramBotFramework.Core.DefaultModules
 {
 
-    [TelegramBotModule(Author = "ridicoulous", Name = "Base", Version = "1.0")]
-    public class CrudBotModule<TDbContext,TBot> : TelegramBotModuleBase<TBot> 
-        where TBot: TelegramBotWrapperWithUserDb<TDbContext>
-        where TDbContext : DbContext, ITelegramBotDbContext
+    //public class CrudBotModuleR : CrudBotModule<SimpleTelegramBot,TelegramBotDefaultSqLiteDbContext>
+    //{
+    //    public CrudBotModuleR(SimpleTelegramBot wrapper) : base(wrapper)
+    //    {
+    //    }
+    //}
+    [TelegramBotModule(Author = "ridicoulous", Name = "CrudModule", Version = "1.0")]
+    public class CrudBotModule<TBot> : TelegramBotModuleBase<TBot> 
+        where TBot: TelegramBotWrapper        
     {
         public CrudBotModule(TBot wrapper) : base(wrapper)
         {
@@ -57,13 +62,13 @@ namespace TelegramBotFramework.Core.DefaultModules
             var menu = new Menu();
             return menu;
         }
-        private IEnumerable<IEditableEntity> GetEditableEntites(TDbContext context)
+        private IEnumerable<IEditableEntity> GetEditableEntites(TelegramBotDbContext context)
         {
             var types = context.Model.GetEntityTypes();
             List<IEditableEntity> entities = new List<IEditableEntity>();
             foreach (var t in types)
             {
-                if (t.ClrType.IsAssignableFrom(typeof(IEditableEntity)))
+                if (t.ClrType.IsAssignableFrom(typeof(IEditableEntity)) || t.ClrType.IsAssignableFrom(typeof(IEditableEntity<>)))
                 {
                     entities.Add(new EditableEntity(t.Name));
                 }

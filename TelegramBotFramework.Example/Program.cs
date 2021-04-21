@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System;
+using TelegramBotFramework.Core.DefaultModules;
 using TelegramBotFramework.Core.Objects;
 using TelegramBotFramework.Example.SimpleBotExample;
 

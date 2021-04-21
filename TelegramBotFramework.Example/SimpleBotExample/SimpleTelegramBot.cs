@@ -7,10 +7,10 @@ using TelegramBotFramework.Core.Interfaces;
 
 namespace TelegramBotFramework.Example.SimpleBotExample
 {
-    public class SimpleTelegramBot : TelegramBotWrapper
-    {
-        public SimpleTelegramBot(ITelegramBotOptions opts) : base(opts)
-        {
-        }
-    }
+    //public class SimpleTelegramBot : TelegramBotWrapper
+    //{
+    //    public SimpleTelegramBot(ITelegramBotOptions opts) : base(opts)
+    //    {
+    //    }
+    //}
 }

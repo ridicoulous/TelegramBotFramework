@@ -27,8 +27,8 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
             {
                 try
                 {
-                    db.Users.Update(u);
-                    db.SaveChanges();
+                    //db.Users.Update(u);
+                    //db.SaveChanges();
                 }
                 catch(Exception e)
                 {
