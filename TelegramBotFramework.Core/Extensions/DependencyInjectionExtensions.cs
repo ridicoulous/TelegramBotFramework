@@ -21,7 +21,7 @@ namespace TelegramBotFramework.Core.Extensions
                 return instance;
             });
         }
-        public static void AddTelegramBotWithDbContext<TDbContext>(this IServiceCollection services, ITelegramBotOptions options, Func<TDbContext> contextFactory) 
+        public static void AddTelegramBotWithDbContext<TDbContext>(this IServiceCollection services, ITelegramBotOptions options, IDbContextFactory<TDbContext> contextFactory) 
             where TDbContext : DbContext, ITelegramBotDbContext
         {
             services.AddSingleton(serviceProvider =>

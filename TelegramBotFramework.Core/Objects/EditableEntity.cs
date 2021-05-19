@@ -9,6 +9,14 @@ namespace TelegramBotFramework.Core.Objects
 {
     public class EditableEntity<TId> : EditableEntity,IEditableEntity
     {
+        public EditableEntity():base("testiq")
+        {
+
+        }
+        public EditableEntity(string readableName):base(readableName)
+        {
+
+        }
         public EditableEntity(TId id, string readableEntityNameForEditing):base(readableEntityNameForEditing)
         {
             Id = id;

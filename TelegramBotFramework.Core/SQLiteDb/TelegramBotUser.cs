@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using TelegramBotFramework.Core.Interfaces;
+using TelegramBotFramework.Core.Objects;
 
 namespace TelegramBotFramework.Core.SQLiteDb
 {
-    public class TelegramBotUser
-    {
-        /// <summary>
-        /// The database id of the user
-        /// </summary>
-        public int ID { get; internal set; }
+    public class TelegramBotUser:EditableEntity<int>
+    {     
+       
         /// <summary>
         /// The users display name
         /// </summary>
@@ -75,5 +74,6 @@ namespace TelegramBotFramework.Core.SQLiteDb
         /// Answer to "who is [user]"
         /// </summary>
         public string Description { get; set; }
+        public new string ReadableEntityNameForEditing { get => "Useriq"; set { } }
     }
 }

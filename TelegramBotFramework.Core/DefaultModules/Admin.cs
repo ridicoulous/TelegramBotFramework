@@ -78,20 +78,23 @@ namespace TelegramBotFramework.DefaultModules
         [ChatCommand(Triggers = new[] { "addbotadmin", "addadmin" }, DevOnly = true, DontSearchInline = true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
         public CommandResponse AddBotAdmin(CommandEventArgs args)
         {
-            var target = BotWrapper.Db.GetTarget(args);
-            if (target != null && target.ID != args.SourceUser.ID)
+            using(var db = BotWrapper.Db)
             {
-                target.IsBotAdmin = true;
-                return new CommandResponse($"{target.Name} is now a bot admin.");
-            }
-            return new CommandResponse(null);
+                var target =db.GetTarget(args);
+                if (target != null && target.Id != args.SourceUser.Id)
+                {
+                    target.IsBotAdmin = true;
+                    return new CommandResponse($"{target.Name} is now a bot admin.");
+                }
+                return new CommandResponse(null);
+            }          
         }
 
         [ChatCommand(Triggers = new[] { "rembotadmin", "remadmin" }, DevOnly = true, DontSearchInline = true, Parameters = new[] { "<userid>", "<@username>", "as a reply" })]
         public CommandResponse RemoveBotAdmin(CommandEventArgs args)
         {
             var target = BotWrapper.Db.GetTarget(args);
-            if (target != null && target.ID != args.SourceUser.ID)
+            if (target != null && target.Id != args.SourceUser.Id)
             {
                 target.IsBotAdmin = false;
                 return new CommandResponse($"{target.Name} is no longer a bot admin.");

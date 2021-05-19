@@ -14,35 +14,38 @@ namespace TelegramBotFramework.Core.Helpers
     {
         public static TelegramBotUser GetTelegramUser(ITelegramBotDbContext db, int adminId, Update update = null, InlineQuery query = null, CallbackQuery cbQuery = null, bool logPoint = true)
         {           
-
-            var from = update?.Message.From ?? query?.From ?? cbQuery?.From;
-            if (from == null) return null;
-            var u = db.Users.AsNoTracking().FirstOrDefault(x => x.UserId == from.Id) ?? new TelegramBotUser
+            using(db)
             {
-                FirstSeen = DateTime.Now,
-                Points = 0,
-                Debt = 0,
-                IsBotAdmin = false,
-                UserId = from.Id
-            };
-            u.UserName = from.Username;
-            if (query?.Location != null)
-                u.Location = $"{query.Location.Latitude},{query.Location.Longitude}";
-            u.Name = (from.FirstName + " " + from.LastName).Trim();
-            if (logPoint)
-            {
-                var where = update != null ? update.Message.Chat.Title ?? "Private" : "Using inline query";
-                u.LastHeard = DateTime.Now;
-                u.LastState = "talking in " + where;
-                u.Points += update?.Message.Text.Length ?? 0 * 10;
+                var from = update?.Message.From ?? query?.From ?? cbQuery?.From;
+                if (from == null) return null;
+                var u = db.Users.AsNoTracking().FirstOrDefault(x => x.UserId == from.Id) ?? new TelegramBotUser
+                {
+                    FirstSeen = DateTime.Now,
+                    Points = 0,
+                    Debt = 0,
+                    IsBotAdmin = false,
+                    UserId = from.Id
+                };
+                u.UserName = from.Username;
+                if (query?.Location != null)
+                    u.Location = $"{query.Location.Latitude},{query.Location.Longitude}";
+                u.Name = (from.FirstName + " " + from.LastName).Trim();
+                if (logPoint)
+                {
+                    var where = update != null ? update.Message.Chat.Title ?? "Private" : "Using inline query";
+                    u.LastHeard = DateTime.Now;
+                    u.LastState = "talking in " + where;
+                    u.Points += update?.Message.Text.Length ?? 0 * 10;
+                }
+                u.Save(db);
+                return u;
             }
-            u.Save(db);
-            return u;
+           
         }
 
         public static TelegramBotUser GetTarget(this ITelegramBotDbContext db, CommandEventArgs args)
         {
-            return args.Message.GetTarget(args.Parameters, args.SourceUser, db);
+            return  args.Message.GetTarget(args.Parameters, args.SourceUser, db);
         }
     }
 }

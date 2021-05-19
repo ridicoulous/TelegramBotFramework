@@ -27,14 +27,15 @@ namespace TelegramBotFramework.Core
 {
     public class TelegramBotWrapper : TelegramBotWrapperWithDb<TelegramBotDefaultSqLiteDbContext>
     {
-        public TelegramBotWrapper(ITelegramBotOptions options) : base(options, ()=> new TelegramBotDefaultSqLiteDbContext(options.Alias,options.InMemoryDb))
+        public TelegramBotWrapper(ITelegramBotOptions options) : base(options,  new DefaultDbContextFactory(options.Alias,options.InMemoryDb))
         {
+         
         }
     }
 
     public class TelegramBotWrapperWithUserDb<TDbContext> : TelegramBotWrapperWithDb<TDbContext> where TDbContext : DbContext, ITelegramBotDbContext
     {
-        public TelegramBotWrapperWithUserDb(ITelegramBotOptions options,Func<TDbContext> factory) : base(options,factory)
+        public TelegramBotWrapperWithUserDb(ITelegramBotOptions options,IDbContextFactory<TDbContext> factory) : base(options,factory)
         {
         }
     }
@@ -61,8 +62,11 @@ namespace TelegramBotFramework.Core
         public Dictionary<CallbackCommand, CallbackCommandMethod> CallbackCommands = new Dictionary<CallbackCommand, CallbackCommandMethod>();
         public Dictionary<TelegramBotModule, Type> Modules = new Dictionary<TelegramBotModule, Type>();
         public TelegramBotLogger Log;
-        public TDbContext Db { get; private set; }
-        public Func<TDbContext> DbContextFactory;
+        /// <summary>
+        /// Should be disposed!
+        /// </summary>
+        public TDbContext Db => DbContextFactory.CreateDbContext();
+        private readonly IDbContextFactory<TDbContext> DbContextFactory;
 
         public TelegramBotSetting LoadedSetting;
         public ModuleMessenger Messenger = new ModuleMessenger();
@@ -70,6 +74,8 @@ namespace TelegramBotFramework.Core
         internal static User Me = null;
         public bool IsSurveyInitiated { get; set; }
         public ConcurrentDictionary<long, KeyValuePair<Type, IEditableEntity>> UserEditingEntity { get; set; }
+
+        DbContext ITelegramBotWrapper.Db => Db;
 
         public virtual void SeedBotAdmins(params int[] admins)
         {
@@ -96,10 +102,10 @@ namespace TelegramBotFramework.Core
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>       
     
-        public TelegramBotWrapperWithDb(ITelegramBotOptions options, Func<TDbContext> contextFactory)
+        public TelegramBotWrapperWithDb(ITelegramBotOptions options, IDbContextFactory<TDbContext> contextFactory)
         {
             DbContextFactory = contextFactory;
-            Db = DbContextFactory();
+           
             Options = options;          
             if (!String.IsNullOrEmpty(options.Directory))
             {
@@ -115,17 +121,13 @@ namespace TelegramBotFramework.Core
             LoadedSetting = setting;
 
             try
-            {
-                
-               //var t = DbContextFactory().Database.EnsureCreated();
-               // if (!t)
-               // {
-
-               // }
-                using(var db = DbContextFactory())
+            {                
+               
+                using(Db)
                 {
-                    db.Database.EnsureCreated();
-                    db.SaveChanges();
+                    Db.Database.EnsureCreated();
+
+                    Db.SaveChanges();
                 }
             }
             catch (Exception ex)
@@ -189,17 +191,19 @@ namespace TelegramBotFramework.Core
         {
             try
             {
-                foreach (var type in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
+                foreach (var botModule in assembly.GetTypes().Where(myType => myType.IsClass && !myType.IsAbstract
                    && myType.IsDefined(typeof(TelegramBotModule))))
                 {
 
-                    var tAtt = type.GetCustomAttributes<TelegramBotModule>().FirstOrDefault();
-                    Log.WriteLine($"Loading {type.GetType().Name} ({tAtt.Name}) module");
+                    var moduleAttributes = botModule.GetCustomAttributes<TelegramBotModule>().FirstOrDefault();
+                    Log.WriteLine($"Loading {botModule.GetType().Name} ({moduleAttributes.Name}) module");
                     var currentBot = this.GetType();
                     object instance = null;
-                    //if (currentBot.BaseType != typeof(TelegramBotWrapper))
-                    //{
-                    var constructs = type.GetConstructors();
+                    if (moduleAttributes.Name == "CrudSimple")
+                    {
+
+                    }
+                    var constructs = botModule.GetConstructors();
                     foreach (var c in constructs)
                     {
                         var paramss = c.GetParameters();
@@ -207,7 +211,7 @@ namespace TelegramBotFramework.Core
                         {
                             if (paramss[0].ParameterType == currentBot)
                             {
-                                Log.WriteLine($"Finded constructor, invoking it for loading {tAtt.Name} at {this.GetType().FullName}");
+                                Log.WriteLine($"Finded constructor, invoking it for loading {moduleAttributes.Name} at {this.GetType().FullName}");
 
                                 instance = c.Invoke(new object[] { this });
                             }
@@ -215,28 +219,28 @@ namespace TelegramBotFramework.Core
                     }
                     if (instance == null)
                     {
-                        var constructor = type.GetConstructor(new[] { typeof(ITelegramBotWrapper),typeof(ITelegramBotWrapper<>),typeof(TelegramBotWrapper), typeof(TelegramBotWrapperWithDb<>), typeof(TelegramBotWrapperWithUserDb<>) });
+                        var constructor = botModule.GetConstructor(new[] { typeof(TelegramBotWrapper) });
 
                         if (constructor == null)
                         {
-                            Log.WriteLine($"Can not create instance of {tAtt.Name}");
+                            Log.WriteLine($"Can not create instance of {moduleAttributes.Name}");
                             continue;
                         }
-                        Log.WriteLine($"Finded constructor {constructor.Name}, invoking it for loading {tAtt.Name} at {this.GetType().FullName}");
+                        Log.WriteLine($"Finded constructor {constructor.Name}, invoking it for loading {moduleAttributes.Name} at {this.GetType().FullName}");
                         instance = constructor.Invoke(new object[] { this });
                     }
                     if (instance == null)
                     {
-                        Log.WriteLine($"{tAtt.Name}not loaded cause can not instantiate by finding contructor");
+                        Log.WriteLine($"{moduleAttributes.Name}not loaded cause can not instantiate by finding contructor");
 
                         continue;
                     }
-                    if (Modules.ContainsKey(tAtt))
+                    if (Modules.ContainsKey(moduleAttributes))
                     {
-                        Log.WriteLine($"{tAtt.Name} has been already loaded. Rename it, if it is no dublicate");
+                        Log.WriteLine($"{moduleAttributes.Name} has been already loaded. Rename it, if it is no dublicate");
                         continue;
                     }
-                    Modules.Add(tAtt, type);
+                    Modules.Add(moduleAttributes, botModule);
 
                     foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatSurvey))))
                     {
@@ -263,7 +267,7 @@ namespace TelegramBotFramework.Core
                         Log.WriteLine($"Loaded ChatCommand {method.Name}\n\t Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)}", overrideColor: ConsoleColor.Green);
 
                     }
-                    foreach (var m in type.GetMethods().Where(x => x.IsDefined(typeof(CallbackCommand))))
+                    foreach (var m in botModule.GetMethods().Where(x => x.IsDefined(typeof(CallbackCommand))))
                     {
                         var att = m.GetCustomAttributes<CallbackCommand>().First();
                         if (CallbackCommands.ContainsKey(att))
@@ -325,10 +329,7 @@ namespace TelegramBotFramework.Core
                 Log.WriteLine("502 bad gateway, restarting in 2 seconds", LogLevel.Error, fileName: "telegram.log");
                 Log.WriteLine(ex.ToString(), LogLevel.Error, fileName: "telegram.log");
                 Thread.Sleep(TimeSpan.FromSeconds(2));
-
             }
-
-
             Log.WriteLine("Connected to Telegram and listening..." + Me.FirstName + Me.LastName);
         }
 
@@ -942,15 +943,19 @@ namespace TelegramBotFramework.Core
             {
                 try
                 {
-                    var users = Db.Users.AsNoTracking().AsEnumerable();
-                    if (onlyAdmins)
-                        users = users.Where(c => c.IsBotAdmin);
-                    if (onlydev)
-                        users = users.Where(c => c.UserId == LoadedSetting.TelegramDefaultAdminUserId);
-                    foreach (var user in users.ToList())
+                    using(var db = Db)
                     {
-                        Send(new MessageSentEventArgs(isSilent) { Response = new CommandResponse(message, ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = user.UserId.ToString() });
+                        var users = db.Users.AsNoTracking().AsEnumerable();
+                        if (onlyAdmins)
+                            users = users.Where(c => c.IsBotAdmin);
+                        if (onlydev)
+                            users = users.Where(c => c.UserId == LoadedSetting.TelegramDefaultAdminUserId);
+                        foreach (var user in users.ToList())
+                        {
+                            Send(new MessageSentEventArgs(isSilent) { Response = new CommandResponse(message, ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = user.UserId.ToString() });
+                        }
                     }
+                   
                 }
                 catch (Exception ex)
                 {

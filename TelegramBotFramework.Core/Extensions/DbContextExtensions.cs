@@ -10,41 +10,42 @@ namespace TelegramBotFramework.Core.Extensions
 {
     public static class DbContextExtensions
     {
-        public static void UsingDbContext<TDbContext>(this Func<TDbContext> getContextAsDisposable, Action<TDbContext> contextAction)
+
+        public static void UsingDbContext<TDbContext>(this TDbContext disposableDbContext, Action<TDbContext> contextAction)
           where TDbContext : DbContext
         {
-            using (var context = getContextAsDisposable())
+            using (disposableDbContext)
             {
-                contextAction(context);
-                context.SaveChanges();
+                contextAction(disposableDbContext);
+                disposableDbContext.SaveChanges();
             }
         }
-        public static TReturn UsingDbContext<TDbContext,TReturn>(this Func<TDbContext> getContextAsDisposable, Func<TDbContext, TReturn> contextAction)
+        public static TReturn UsingDbContext<TDbContext, TReturn>(this TDbContext disposableDbContext, Func<TDbContext, TReturn> contextAction)
          where TDbContext : DbContext
         {
-            using (var context = getContextAsDisposable())
+            using (disposableDbContext)
             {
-               var result = contextAction(context);
-                context.SaveChanges();
+                var result = contextAction(disposableDbContext);
+                disposableDbContext.SaveChanges();
                 return result;
             }
         }
-        public static void UsingDbContextEntity<TDbContext, TDbSet>(this Func<TDbContext> getContextAsDisposable, Action<DbSet<TDbSet>> contextAction) where TDbSet: class
+        public static void UsingDbContextEntity<TDbContext, TDbSet>(this TDbContext disposableDbContext, Action<DbSet<TDbSet>> contextAction, bool shouldSaveChanges=false) where TDbSet : class
         where TDbContext : DbContext
         {
-            using (var context = getContextAsDisposable())
+            using (disposableDbContext)
             {
-                var set = context.Set<TDbSet>();
+                var set = disposableDbContext.Set<TDbSet>();
                 contextAction(set);
-                context.SaveChanges();
-                 //contextAction(context);
+                if(shouldSaveChanges)       
+                    disposableDbContext.SaveChanges();
             }
         }
-       
-            public static IQueryable Query(this DbContext context, string entityName) =>
-                context.Query(context.Model.FindEntityType(entityName).ClrType);
 
-            static readonly MethodInfo SetMethod = typeof(DbContext).GetMethod(nameof(DbContext.Set));
+        public static IQueryable Query(this DbContext context, string entityName) =>
+            context.Query(context.Model.FindEntityType(entityName).ClrType);
+
+        static readonly MethodInfo SetMethod = typeof(DbContext).GetMethod(nameof(DbContext.Set));
         static readonly MethodInfo UpdateMethod = typeof(DbContext).GetMethod(nameof(DbContext.Update));
 
 

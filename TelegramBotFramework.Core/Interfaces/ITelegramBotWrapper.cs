@@ -10,13 +10,15 @@ using TelegramBotFramework.Core.SQLiteDb;
 
 namespace TelegramBotFramework.Core.Interfaces
 {
-    public interface ITelegramBotWrapper<TDbContext> : ITelegramBotWrapper 
-        where TDbContext : DbContext,  ITelegramBotDbContext
+    public interface ITelegramBotWrapper<TDbContext> : ITelegramBotWrapper
+        where TDbContext : DbContext, ITelegramBotDbContext
     {
-       
+        new TDbContext Db { get; }
     }
     public interface ITelegramBotWrapper
     {
+        DbContext Db { get; }
+        
         ConcurrentDictionary<long, KeyValuePair<Type, IEditableEntity>> UserEditingEntity { get; set; }
         void Run();
         void SeedBotAdmins(params int[] adminIds);

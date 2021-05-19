@@ -27,7 +27,8 @@ namespace TelegramBotFramework.Core.SQLiteDb
             {
                 var keepAliveConnection = new SqliteConnection("DataSource=:memory:");
                 keepAliveConnection.Open();
-                optionsBuilder.UseSqlite(keepAliveConnection);             
+                optionsBuilder.UseSqlite(keepAliveConnection);     
+                
             }
             else
             {
