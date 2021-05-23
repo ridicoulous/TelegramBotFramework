@@ -12,10 +12,10 @@
     <RepositoryType>GitHub</RepositoryType>
     <PackageTags>telegram telegram-bot bot-framework</PackageTags>
 
-    <Version>0.5.2</Version>
+    <Version>0.6.0</Version>
     <Copyright>ridicoulous</Copyright>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
-    <PackageReleaseNotes>in memory db</PackageReleaseNotes>
+    <PackageReleaseNotes>05/23/2021 - injected IDbContextFactory for simple CRUD module</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

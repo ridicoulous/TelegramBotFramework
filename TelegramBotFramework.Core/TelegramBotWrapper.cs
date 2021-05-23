@@ -842,9 +842,8 @@ namespace TelegramBotFramework.Core
             {
                 Log.WriteLine("Exception happend at handling update:\n" + ex.ToString(), LogLevel.Error, ConsoleColor.Cyan, "error.log");
             }
-
         }
-
+        
 
         private static string[] GetParameters(string input)
         {

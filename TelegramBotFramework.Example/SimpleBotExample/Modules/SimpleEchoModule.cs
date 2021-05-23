@@ -43,5 +43,10 @@ namespace TelegramBotFramework.Example.SimpleBotExample.Modules
         public SimpleCrudModule(SimpleTelegramBot wrapper) : base(wrapper)
         {
         }
+
+        protected override void OnEntityUpdated(Type entityType, object entityValue)
+        {
+            BotWrapper.SendMessageToAll($"{entityType.FullName} was updated {Emoji.Dice}");
+        }
     }
 }

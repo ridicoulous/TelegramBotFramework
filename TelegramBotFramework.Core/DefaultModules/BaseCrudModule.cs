@@ -223,6 +223,8 @@ namespace TelegramBotFramework.Core.DefaultModules
                 {
                     db.Update(_currentUpdatingEntryValue[userId]);
                     db.SaveChanges();
+
+                    OnEntityUpdated(_currentUpdatingEntryType[userId], _currentUpdatingEntryValue[userId]);
                 }
                 var entryValue = _currentUpdatingEntryValue[userId] as IEditableEntity;
 
@@ -237,7 +239,7 @@ namespace TelegramBotFramework.Core.DefaultModules
                 Clear(userId);
             }
         }
-
+        protected abstract void OnEntityUpdated(Type entityType, object entityValue);
         public void Clear(int userId)
         {
             _currentUpdatingEntryType.Remove(userId, out _);
