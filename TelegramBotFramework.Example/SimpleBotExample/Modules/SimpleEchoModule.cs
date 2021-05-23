@@ -38,7 +38,7 @@ namespace TelegramBotFramework.Example.SimpleBotExample.Modules
         }
     }
     [TelegramBotModule(Author = "ridicoulous", IsModuleActive = true, Name = "CrudBotModuleTest", Version = "1.0")]
-    public class SimpleCrudModule : CrudEntityModule<SimpleTelegramBot>
+    public class SimpleCrudModule : BaseCrudModule<SimpleTelegramBot>
     {
         public SimpleCrudModule(SimpleTelegramBot wrapper) : base(wrapper)
         {

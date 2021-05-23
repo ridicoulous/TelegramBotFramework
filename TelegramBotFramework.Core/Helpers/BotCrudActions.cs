@@ -10,6 +10,8 @@ namespace TelegramBotFramework.Core.Helpers
     {
         public const string EditEntity = "editentity";
         public const string ChooseEntityForEditById = "chooseEntityForEditById";
+        public const string FieldForEditChoosed = "fieldForEditChoosed";
+
 
     }
 }

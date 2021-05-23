@@ -60,7 +60,7 @@ namespace TelegramBotFramework.Core
         public event Action<InvoiceDto> OnPaymentReceived;
         public Dictionary<ChatCommand, ChatCommandMethod> Commands = new Dictionary<ChatCommand, ChatCommandMethod>();
         public Dictionary<CallbackCommand, CallbackCommandMethod> CallbackCommands = new Dictionary<CallbackCommand, CallbackCommandMethod>();
-        public Dictionary<TelegramBotModule, Type> Modules = new Dictionary<TelegramBotModule, Type>();
+        public Dictionary<TelegramBotModule, object> Modules = new Dictionary<TelegramBotModule, object>();
         public TelegramBotLogger Log;
         /// <summary>
         /// Should be disposed!
@@ -240,7 +240,7 @@ namespace TelegramBotFramework.Core
                         Log.WriteLine($"{moduleAttributes.Name} has been already loaded. Rename it, if it is no dublicate");
                         continue;
                     }
-                    Modules.Add(moduleAttributes, botModule);
+                    Modules.Add(moduleAttributes, instance);
 
                     foreach (var method in instance.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatSurvey))))
                     {
@@ -709,6 +709,24 @@ namespace TelegramBotFramework.Core
                     {
                         Bot.SendTextMessageAsync(update.Message.Chat, "You must be approved to use this bot, write to admin");
                         return;
+                    }
+                }
+                foreach(var m in Modules)
+                {
+                    if (m.Value.GetType().IsAssignableTo(typeof(ITelegramBotCrudModule)))
+                    {
+                        var module = m.Value as ITelegramBotCrudModule;
+                        if (module == null)
+                        {
+                            Log.WriteLine($"Can not cast module {m.Key.Name} to ITelegramBotCrudModule ");
+                            continue;
+                        }
+                        if (module.IsCurrentUserSubmitsEntityFieldValue(user.Id))
+                        {
+                            Send(new MessageSentEventArgs() { Target = user.UserId.ToString(),
+                                Response = module.SubmitValue(user.Id,update.Message.Text) });
+                            return;
+                        }
                     }
                 }
                 if (UsersWaitingAnswers.ContainsKey(update.Message.Chat.Id) && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)

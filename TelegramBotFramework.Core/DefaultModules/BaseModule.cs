@@ -68,7 +68,7 @@ namespace TelegramBotFramework.DefaultModules
                 return new CommandResponse($"{args.Parameters} module not found.");
             sb.AppendLine($"*{m.Key.Name}*, by _{m.Key.Author}_ (version {m.Key.Version})\n");
             var menu = new Menu { Columns = 2 };
-            foreach (var method in m.Value.GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
+            foreach (var method in m.Value.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
             {
                 var att = method.GetCustomAttributes<ChatCommand>().First();
                 menu.Buttons.Add(new InlineButton(att.Triggers[0], "c", att.Triggers[0]));
@@ -104,7 +104,7 @@ namespace TelegramBotFramework.DefaultModules
             if (module.Key == null)
                 return new CommandResponse($"{args.Parameters} module not found.");
 
-            foreach (var method in module.Value.GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
+            foreach (var method in module.Value.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
             {
                 var att = method.GetCustomAttributes<ChatCommand>().First();
                 sb.AppendLine($"*{att.Triggers[0]}*: {att.HelpText ?? method.Name}");
@@ -121,7 +121,7 @@ namespace TelegramBotFramework.DefaultModules
             HashSet<string> addedCommands = new HashSet<string>();
             foreach (var module in BotWrapper.Modules)
             {
-                foreach (var method in module.Value.GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
+                foreach (var method in module.Value.GetType().GetMethods().Where(x => x.IsDefined(typeof(ChatCommand))))
                 {
                     var att = method.GetCustomAttributes<ChatCommand>().First();
                     if (!att.DontSearchInline&&!addedCommands.Contains(att.Triggers[0]))

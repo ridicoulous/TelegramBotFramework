@@ -263,7 +263,7 @@ namespace TelegramBotFramework.Core.Objects
         /// <summary>
         /// The buttons you want in your menu
         /// </summary>
-        public List<InlineButton> Buttons { get; set; }
+        public List<InlineButton> Buttons { get; set; } = new List<InlineButton>();
         /// <summary>
         /// How many columns.  Defaults to 1.
         /// </summary>

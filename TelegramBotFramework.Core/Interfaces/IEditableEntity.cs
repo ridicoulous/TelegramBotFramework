@@ -5,11 +5,12 @@ using System.Text;
 namespace TelegramBotFramework.Core.Interfaces
 {
     /// <summary>
-    /// Market interface for take editable entities from db context
+    /// Marker interface for take editable entities from db context
     /// </summary>
     public interface IEditableEntity
     {
-
+        string PrimaryKeyName { get; }
+        string EntityReadableName { get; }
     }
 
 }

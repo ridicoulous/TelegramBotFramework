@@ -10,12 +10,12 @@ namespace TelegramBotFramework.Core.SQLiteDb
 {
     public class TelegramBotDefaultSqLiteDbContext : DbContext, ITelegramBotDbContext
     {
-        public readonly string _db;
-        private readonly bool _inMemory;
+        private readonly string _db;
+        public readonly bool InMemory;
         public TelegramBotDefaultSqLiteDbContext(string dbName, bool inMemory)
         {
             _db = dbName;
-            _inMemory = inMemory;
+            InMemory = inMemory;
         }
         public DbSet<TelegramBotUser> Users { get; set; }
         public DbSet<TelegramBotSetting> Settings { get; set; }
@@ -23,7 +23,7 @@ namespace TelegramBotFramework.Core.SQLiteDb
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (_inMemory)
+            if (InMemory)
             {
                 var keepAliveConnection = new SqliteConnection("DataSource=:memory:");
                 keepAliveConnection.Open();

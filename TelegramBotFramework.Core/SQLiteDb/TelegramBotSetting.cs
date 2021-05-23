@@ -24,6 +24,9 @@ namespace TelegramBotFramework.Core.SQLiteDb
         /// Your Telegram Bot API Token
         /// </summary>
         public string TelegramBotAPIKey { get; set; }
-    
+
+        public string PrimaryKeyName => nameof(Id);
+
+        public string EntityReadableName => Alias;
     }
 }
