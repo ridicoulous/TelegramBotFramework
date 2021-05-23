@@ -30,24 +30,24 @@ namespace TelegramBotFramework.Core.DefaultModules
             return new CommandResponse("Choose entity for edit:", menu: GenerateMenuForEntity(entitesToEdit));
         }
 
-        private Menu GenerateMenuForEntity(IEnumerable<IEditableEntity> entities, string action = BotCrudActions.EditEntity)
+        private Menu GenerateMenuForEntity(IEnumerable<Type> entities, string action = BotCrudActions.EditEntity)
         {
             var menu = new Menu()
             {
                 Columns = 1,
-                Buttons = entities.Select(f => new InlineButton($"Edit: {f.ReadableEntityNameForEditing}", action, f.ReadableEntityNameForEditing)).ToList()
+                Buttons = entities.Select(f => new InlineButton($"Edit: {f.Name}", action, f.Name)).ToList()
             };
             return menu;
         }
-        private Menu GenerateMenuForEntityFields(IEditableEntity entry)
+        private Menu GenerateMenuForEntityFields(Type entry)
         {
             using (var db = BotWrapper.Db)
             {
-                var entity = db.Model.FindEntityType(entry.ReadableEntityNameForEditing);
+                var entity = db.Model.FindEntityType(entry);
                 var t = entity.FindPrimaryKey();
                 db.Set<TelegramBotUser>();
                 db.Update(entry);
-                db.UpdateEntity(entity.ClrType, entry);
+               // db.UpdateEntity(entity.ClrType, entry);
                 //db.Model.GetRelationalModel().Tables.ToList()[0].Columns.ToList()[0].va
             }
             //var type =typeof(TDbContext).GetProperty(entity.ReadableEntityNameForEditing);
@@ -57,15 +57,15 @@ namespace TelegramBotFramework.Core.DefaultModules
             var menu = new Menu();
             return menu;
         }
-        private IEnumerable<IEditableEntity> GetEditableEntites(TDbContext context)
+        private IEnumerable<Type> GetEditableEntites(TDbContext context)
         {
             var types = context.Model.GetEntityTypes();
-            List<IEditableEntity> entities = new List<IEditableEntity>();
+            List<Type> entities = new List<Type>();
             foreach (var t in types)
             {
                 if (t.ClrType.IsAssignableFrom(typeof(IEditableEntity)))
                 {
-                    entities.Add(new EditableEntity(t.Name));
+                    entities.Add(t.ClrType);
                 }
             }
             return entities;

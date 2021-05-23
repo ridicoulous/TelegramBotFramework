@@ -6,9 +6,9 @@ using TelegramBotFramework.Core.Objects;
 
 namespace TelegramBotFramework.Core.SQLiteDb
 {
-    public class TelegramBotUser:EditableEntity<int>
-    {     
-       
+    public class TelegramBotUser:IEditableEntity
+    {
+        public int Id { get; set; }
         /// <summary>
         /// The users display name
         /// </summary>

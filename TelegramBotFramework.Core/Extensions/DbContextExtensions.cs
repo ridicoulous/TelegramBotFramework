@@ -45,15 +45,15 @@ namespace TelegramBotFramework.Core.Extensions
         public static IQueryable Query(this DbContext context, string entityName) =>
             context.Query(context.Model.FindEntityType(entityName).ClrType);
 
-        static readonly MethodInfo SetMethod = typeof(DbContext).GetMethod(nameof(DbContext.Set));
-        static readonly MethodInfo UpdateMethod = typeof(DbContext).GetMethod(nameof(DbContext.Update));
+        static readonly MethodInfo SetMethod = typeof(DbContext).GetMethods().Single(m => m.Name == nameof(DbContext.Set) && m.GetParameters().Count() == 0);
+        //static readonly MethodInfo UpdateMethod = typeof(DbContext).GetMethod(nameof(DbContext.Update));
 
 
         public static IQueryable Query(this DbContext context, Type entityType) =>
                 (IQueryable)SetMethod.MakeGenericMethod(entityType).Invoke(context, null);
 
-        public static void UpdateEntity(this DbContext context, Type entityType, object value) =>
-                UpdateMethod.MakeGenericMethod(entityType).Invoke(context, new[] { value });
+        //public static void UpdateEntity(this DbContext context, Type entityType, object value) =>
+        //        UpdateMethod.MakeGenericMethod(entityType).Invoke(context, new[] { value });
 
     }
 }

@@ -5,7 +5,7 @@ using TelegramBotFramework.Core.Interfaces;
 
 namespace TelegramBotFramework.Core.SQLiteDb
 {
-    public class TelegramBotSetting:IEditableEntity<int>
+    public class TelegramBotSetting:IEditableEntity
     {
         /// <summary>
         /// DB Id of the setting
@@ -24,7 +24,6 @@ namespace TelegramBotFramework.Core.SQLiteDb
         /// Your Telegram Bot API Token
         /// </summary>
         public string TelegramBotAPIKey { get; set; }
-        public string ReadableEntityNameForEditing { get; set; } = "BotSetting";
-        object IEditableEntity.Id { get => Id; set => Id=int.Parse(value.ToString()); }
+    
     }
 }
