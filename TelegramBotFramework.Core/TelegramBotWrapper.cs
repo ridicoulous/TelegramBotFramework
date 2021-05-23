@@ -27,15 +27,15 @@ namespace TelegramBotFramework.Core
 {
     public class TelegramBotWrapper : TelegramBotWrapperWithDb<TelegramBotDefaultSqLiteDbContext>
     {
-        public TelegramBotWrapper(ITelegramBotOptions options) : base(options,  new DefaultDbContextFactory(options.Alias,options.InMemoryDb))
+        public TelegramBotWrapper(ITelegramBotOptions options) : base(options, new DefaultDbContextFactory(options.Alias, options.InMemoryDb))
         {
-         
+
         }
     }
 
     public class TelegramBotWrapperWithUserDb<TDbContext> : TelegramBotWrapperWithDb<TDbContext> where TDbContext : DbContext, ITelegramBotDbContext
     {
-        public TelegramBotWrapperWithUserDb(ITelegramBotOptions options,IDbContextFactory<TDbContext> factory) : base(options,factory)
+        public TelegramBotWrapperWithUserDb(ITelegramBotOptions options, IDbContextFactory<TDbContext> factory) : base(options, factory)
         {
         }
     }
@@ -101,12 +101,12 @@ namespace TelegramBotFramework.Core
         /// <param name="adminId"></param>
         /// <param name="serviceProvider"></param>
         /// <param name="alias"></param>       
-    
+
         public TelegramBotWrapperWithDb(ITelegramBotOptions options, IDbContextFactory<TDbContext> contextFactory)
         {
             DbContextFactory = contextFactory;
-           
-            Options = options;          
+
+            Options = options;
             if (!String.IsNullOrEmpty(options.Directory))
             {
                 RootDirectory = options.Directory;
@@ -121,9 +121,9 @@ namespace TelegramBotFramework.Core
             LoadedSetting = setting;
 
             try
-            {                
-               
-                using(Db)
+            {
+
+                using (Db)
                 {
                     Db.Database.EnsureCreated();
 
@@ -143,7 +143,7 @@ namespace TelegramBotFramework.Core
 
             //WatchForNewModules(telegramBotModuleDir);
         }
-      
+
         private void WatchForNewModules(string path)
         {
             if (!Directory.Exists(path))
@@ -365,7 +365,7 @@ namespace TelegramBotFramework.Core
                 {
                     var eArgs = new CallbackEventArgs()
                     {
-                        SourceUser = user,                     
+                        SourceUser = user,
                         Parameters = args,
                         Target = query.Message.Chat.Id.ToString(),
                         Messenger = Messenger,
@@ -511,7 +511,7 @@ namespace TelegramBotFramework.Core
             {
                 var response = c.Value.Invoke(new CommandEventArgs
                 {
-                    SourceUser = user,                    
+                    SourceUser = user,
                     Parameters = com[1],
                     Target = "",
                     Messenger = Messenger,
@@ -711,7 +711,8 @@ namespace TelegramBotFramework.Core
                         return;
                     }
                 }
-                foreach(var m in Modules)
+
+                foreach (var m in Modules)
                 {
                     if (m.Value.GetType().IsAssignableTo(typeof(ITelegramBotCrudModule)))
                     {
@@ -721,14 +722,31 @@ namespace TelegramBotFramework.Core
                             Log.WriteLine($"Can not cast module {m.Key.Name} to ITelegramBotCrudModule ");
                             continue;
                         }
+
                         if (module.IsCurrentUserSubmitsEntityFieldValue(user.Id))
                         {
-                            Send(new MessageSentEventArgs() { Target = user.UserId.ToString(),
-                                Response = module.SubmitValue(user.Id,update.Message.Text) });
+                            if (update.Message.Text.StartsWith("!") || update.Message.Text.StartsWith("/"))
+                            {
+                                Send(new MessageSentEventArgs()
+                                {
+                                    Target = user.UserId.ToString(),
+                                    Response = new CommandResponse("Operation aborted due to new command catched")
+                                });
+                                module.Clear(user.Id);
+                                return;
+                            }
+                            Send(new MessageSentEventArgs()
+                            {
+                                Target = user.UserId.ToString(),
+                                Response = module.SubmitValue(user.Id, update.Message.Text)
+                            });
                             return;
                         }
                     }
                 }
+
+
+
                 if (UsersWaitingAnswers.ContainsKey(update.Message.Chat.Id) && UsersWaitingAnswers[update.Message.Chat.Id].Count > 0)
                 {
                     if (!SurveyAnswersHandlers.Any())
@@ -806,7 +824,7 @@ namespace TelegramBotFramework.Core
                             var eArgs = new CommandEventArgs
                             {
                                 SourceUser = user,
-                              
+
                                 Parameters = args[1],
                                 Target = update.Message.Chat.Id.ToString(),
                                 Messenger = Messenger,
@@ -961,7 +979,7 @@ namespace TelegramBotFramework.Core
             {
                 try
                 {
-                    using(var db = Db)
+                    using (var db = Db)
                     {
                         var users = db.Users.AsNoTracking().AsEnumerable();
                         if (onlyAdmins)
@@ -973,7 +991,7 @@ namespace TelegramBotFramework.Core
                             Send(new MessageSentEventArgs(isSilent) { Response = new CommandResponse(message, ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = user.UserId.ToString() });
                         }
                     }
-                   
+
                 }
                 catch (Exception ex)
                 {

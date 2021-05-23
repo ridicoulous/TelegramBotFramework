@@ -77,7 +77,6 @@ namespace TelegramBotFramework.Core.DefaultModules
             {
                 try
                 {
-                    
                     var entityValue = LoadEntityValuebyId(id: args.Parameters,
                                primaryKeyName: _currentUpdatingPrimaryKeyName[args.SourceUser.Id],
                                entityType: _currentUpdatingEntryType[args.SourceUser.Id],
@@ -88,7 +87,7 @@ namespace TelegramBotFramework.Core.DefaultModules
                     menu.Columns = 1;
                     foreach (var e in entityValue.AsDictionary())
                     {
-                        menu.Buttons.Add(new InlineButton($"{e.Key}:{e.Value}", BotCrudActions.FieldForEditChoosed, e.Key));
+                        menu.Buttons.Add(new InlineButton($"{e.Key}:\t{e.Value}", BotCrudActions.FieldForEditChoosed, e.Key));
                     }
                     return new CommandResponse("Choose entity field for edit:", menu: menu);
                 }
@@ -105,7 +104,7 @@ namespace TelegramBotFramework.Core.DefaultModules
             {
                 AddFieldForEditName(args.SourceUser.Id, args.Parameters);
                 var entryValue = _currentUpdatingEntryValue[args.SourceUser.Id] as IEditableEntity;
-                return new CommandResponse($"Write {args.Parameters} field of {entryValue.EntityReadableName} value:");
+                return new CommandResponse($"Write `{args.Parameters}` field of `{entryValue.EntityReadableName}` value:", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             }
             catch (Exception ex)
             {
@@ -177,36 +176,6 @@ namespace TelegramBotFramework.Core.DefaultModules
             return db.GetEntityByTypeAndId(id, primaryKeyName, entityType);
         }
 
-        [ChatCommand(Triggers = new[] { "test" }, DevOnly = false, DontSearchInline = true)]
-        public CommandResponse Test(CommandEventArgs args)
-        {
-            var entryType = _currentUpdatingEntryType[args.SourceUser.Id];
-
-            var entryValue = _currentUpdatingEntryValue[args.SourceUser.Id];
-            var entryPrimaryKey = entryValue as IEditableEntity;
-            if (entryPrimaryKey == null)
-            {
-                return new CommandResponse("Can not cast to IEditableEntity");
-            }
-
-            ParameterExpression p = Expression.Parameter(entryType);
-
-            Expression property = Expression.Property(p, entryPrimaryKey.PrimaryKeyName);
-            Expression c = Expression.Constant(1);
-            Expression body = Expression.Equal(property, c);
-            Expression exp = Expression.Lambda(body, new ParameterExpression[] { p });
-
-            MethodInfo singleMethod = typeof(Queryable).GetMethods()
-                .Single(m => m.Name == "Single" && m.GetParameters().Count() == 2)
-                .MakeGenericMethod(entryType);
-
-            using (var db = BotWrapper.Db)
-            {
-                object result = singleMethod.Invoke(null, new object[] { db.Query(entryType), exp });
-            }
-            return new CommandResponse("Choose entity for edit:");
-
-        }
         private Menu GenerateMenuForEntity(IEnumerable<Type> entities, string action = BotCrudActions.EditEntity)
         {
             var menu = new Menu()
@@ -216,41 +185,7 @@ namespace TelegramBotFramework.Core.DefaultModules
             };
             return menu;
         }
-        private Menu GenerateMenuForEntityFields(Type entry)
-        {
-            ParameterExpression p = Expression.Parameter(entry);
-            Expression property = Expression.Property(p, "Id");
-            Expression c = Expression.Constant(1);
-            Expression body = Expression.Equal(property, c);
-            Expression exp = Expression.Lambda(body, new ParameterExpression[] { p });
 
-            MethodInfo singleMethod = typeof(Queryable).GetMethods()
-                .Single(m => m.Name == "Single" && m.GetParameters().Count() == 2)
-                .MakeGenericMethod(entry);
-
-            //  DbSet dbSet = context.Set(domainObject.GetType());
-
-
-            using (var db = BotWrapper.Db)
-            {
-
-                object result = singleMethod.Invoke(null, new object[] { db.Query(entry), exp });
-
-                var entity = db.Model.FindEntityType(entry);
-                var t = entity.FindPrimaryKey();
-
-                db.Set<TelegramBotUser>();
-                db.Update(entry);
-                //db.UpdateEntity(entity.ClrType, entry);
-                //db.Model.GetRelationalModel().Tables.ToList()[0].Columns.ToList()[0].va
-            }
-            //var type =typeof(TDbContext).GetProperty(entity.ReadableEntityNameForEditing);
-
-
-
-            var menu = new Menu();
-            return menu;
-        }
         public IEnumerable<Type> GetEditableEntites()
         {
             using (var context = BotWrapper.Db)
@@ -261,7 +196,6 @@ namespace TelegramBotFramework.Core.DefaultModules
                 {
                     if (t.ClrType.IsAssignableTo(typeof(IEditableEntity)))
                     {
-                        Console.WriteLine(t.Name);
                         entities.Add(t.ClrType);
                     }
                 }
@@ -290,19 +224,26 @@ namespace TelegramBotFramework.Core.DefaultModules
                     db.Update(_currentUpdatingEntryValue[userId]);
                     db.SaveChanges();
                 }
-                return new CommandResponse($"Value `{userInput}` for `{_currentUpdatingFieldName[userId]}` was saved");
+                var entryValue = _currentUpdatingEntryValue[userId] as IEditableEntity;
+
+                return new CommandResponse($"Value `{userInput}` for `{entryValue.EntityReadableName}.{_currentUpdatingFieldName[userId]}` was saved", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             }
             catch (Exception ex)
             {
-                return new CommandResponse($"Value `{userInput}` for `{_currentUpdatingFieldName[userId]}` was not saved: {ex.ToString()}");
+                return new CommandResponse($"Value `{userInput}` for `{_currentUpdatingFieldName[userId]}` was not saved: {ex.ToString()}", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             }
             finally
             {
-                _currentUpdatingEntryType.Remove(userId, out _);
-                _currentUpdatingEntryValue.TryRemove(userId, out _);
-                _currentUpdatingFieldName.TryRemove(userId, out _);
-                _currentUpdatingPrimaryKeyName.TryRemove(userId, out _);
+                Clear(userId);
             }
+        }
+
+        public void Clear(int userId)
+        {
+            _currentUpdatingEntryType.Remove(userId, out _);
+            _currentUpdatingEntryValue.TryRemove(userId, out _);
+            _currentUpdatingFieldName.TryRemove(userId, out _);
+            _currentUpdatingPrimaryKeyName.TryRemove(userId, out _);
         }
     }
 }

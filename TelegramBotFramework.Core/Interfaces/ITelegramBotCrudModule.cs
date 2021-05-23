@@ -15,6 +15,7 @@ namespace TelegramBotFramework.Core.Interfaces
         IEnumerable<Type> GetEditableEntites();
         bool IsCurrentUserSubmitsEntityFieldValue(int userId);
         CommandResponse SubmitValue(int userId, string userInput);
+        void Clear(int userId);
 
     }
 }
