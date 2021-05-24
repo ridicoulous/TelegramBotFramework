@@ -6,9 +6,9 @@ namespace TelegramBotFramework.Core.Interfaces
 {
     public interface ITelegramBotDbContext:IDisposable
     {
-        DbSet<TelegramBotUser> Users { get; set; }
-        DbSet<TelegramBotSetting> Settings { get; set; }
-        DbSet<TelegramBotGroup> Groups { get; set; }
+        DbSet<TelegramBotUser> TelegramBotUsers { get; set; }
+        DbSet<TelegramBotSetting> TelegramBotSettings { get; set; }
+        DbSet<TelegramBotGroup> TelegramBotGroups { get; set; }
         void SaveChanges();
     }
 }

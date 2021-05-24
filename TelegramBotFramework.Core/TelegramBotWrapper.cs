@@ -83,9 +83,9 @@ namespace TelegramBotFramework.Core
             {
                 foreach (var u in admins)
                 {
-                    Db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = u, FirstSeen = DateTime.UtcNow });
+                    Db.TelegramBotUsers.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = u, FirstSeen = DateTime.UtcNow });
                 }
-                Db.Users.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = LoadedSetting.TelegramDefaultAdminUserId, FirstSeen = DateTime.UtcNow });
+                Db.TelegramBotUsers.Add(new TelegramBotUser() { IsBotAdmin = true, UserId = LoadedSetting.TelegramDefaultAdminUserId, FirstSeen = DateTime.UtcNow });
                 Db.SaveChanges();
             }
             catch (Exception ex)
@@ -980,7 +980,7 @@ namespace TelegramBotFramework.Core
                 {
                     using (var db = Db)
                     {
-                        var users = db.Users.AsNoTracking().AsEnumerable();
+                        var users = db.TelegramBotUsers.AsNoTracking().AsEnumerable();
                         if (onlyAdmins)
                             users = users.Where(c => c.IsBotAdmin);
                         if (onlydev)

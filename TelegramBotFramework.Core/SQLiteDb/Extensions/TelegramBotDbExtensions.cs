@@ -17,9 +17,9 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
             {
                 try
                 {
-                    db.Users.Add(u);
+                    db.TelegramBotUsers.Add(u);
                     db.SaveChanges();
-                    u.Id = db.Users.FirstOrDefault(c => c.UserId == u.UserId).Id;
+                    u.Id = db.TelegramBotUsers.FirstOrDefault(c => c.UserId == u.UserId).Id;
                 }
                 catch { }
             }
@@ -39,12 +39,12 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
 
         public static bool ExistsInDb(this TelegramBotUser user, ITelegramBotDbContext db)
         {
-            return db.Users.AsNoTracking().Any(i => i.Id == user.Id);
+            return db.TelegramBotUsers.AsNoTracking().Any(i => i.Id == user.Id);
         }
 
         public static void RemoveFromDb(this TelegramBotUser user, ITelegramBotDbContext db)
         {
-            db.Users.Remove(user);
+            db.TelegramBotUsers.Remove(user);
             db.SaveChanges();
         }
 
@@ -57,25 +57,25 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
         {
             if (u.ID == null || !ExistsInDb(u, db))
             {                
-                db.Groups.Add(u);
+                db.TelegramBotGroups.Add(u);
                 db.SaveChanges();
-                u.ID = db.Groups.FirstOrDefault(c => c.GroupId == u.GroupId).ID;
+                u.ID = db.TelegramBotGroups.FirstOrDefault(c => c.GroupId == u.GroupId).ID;
             }
             else
             {
-                db.Groups.Update(u);
+                db.TelegramBotGroups.Update(u);
                 db.SaveChanges();               
             }
         }
 
         public static bool ExistsInDb(this TelegramBotGroup group, ITelegramBotDbContext db)
         {
-            return db.Groups.Any(c => c.ID == group.ID);
+            return db.TelegramBotGroups.Any(c => c.ID == group.ID);
         }
 
         public static void RemoveFromDb(this TelegramBotGroup group, ITelegramBotDbContext db)
         {
-            db.Groups.Remove(group);
+            db.TelegramBotGroups.Remove(group);
             db.SaveChanges();
         }
 
@@ -89,25 +89,25 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
         {
             if (set.Id == 0 || !ExistsInDb(set, db))
             {             
-                db.Settings.Add(set);
+                db.TelegramBotSettings.Add(set);
                 db.SaveChanges();
-                set.Id = db.Settings.FirstOrDefault(c => c.Alias == set.Alias).Id;
+                set.Id = db.TelegramBotSettings.FirstOrDefault(c => c.Alias == set.Alias).Id;
             }
             else
             {               
-                db.Settings.Update(set);
+                db.TelegramBotSettings.Update(set);
                 db.SaveChanges();
             }
         }
 
         public static bool ExistsInDb(this TelegramBotSetting set, ITelegramBotDbContext db)
         {
-            return db.Settings.Any(c => c.Id == set.Id);
+            return db.TelegramBotSettings.Any(c => c.Id == set.Id);
         }
 
         public static void RemoveFromDb(this TelegramBotSetting set, ITelegramBotDbContext db)
         {
-            db.Settings.Remove(set);
+            db.TelegramBotSettings.Remove(set);
             db.SaveChanges();
         }
 
@@ -132,7 +132,7 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
             {
                 var m = message.ReplyToMessage;
                 var userid = m.ForwardFrom?.Id ?? m.From.Id;
-                return db.Users.AsNoTracking().FirstOrDefault(x => x.UserId == userid) ?? sourceUser;
+                return db.TelegramBotUsers.AsNoTracking().FirstOrDefault(x => x.UserId == userid) ?? sourceUser;
             }
             if (String.IsNullOrWhiteSpace(args))
             {
@@ -151,12 +151,12 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
             }
             TelegramBotUser result = null;
             if (!String.IsNullOrEmpty(username))
-                result = db.Users.AsNoTracking().FirstOrDefault(
+                result = db.TelegramBotUsers.AsNoTracking().FirstOrDefault(
                     x => x.UserName.ToUpper() == username.ToUpper());
             else if (id != 0)
-                result = db.Users.AsNoTracking().FirstOrDefault(x => x.UserId == id);
+                result = db.TelegramBotUsers.AsNoTracking().FirstOrDefault(x => x.UserId == id);
             else
-                result = db.Users.AsNoTracking().ToList().FirstOrDefault(
+                result = db.TelegramBotUsers.AsNoTracking().ToList().FirstOrDefault(
                         x =>
                             String.Equals(x.UserId.ToString(), args, StringComparison.InvariantCultureIgnoreCase) ||
                             String.Equals(x.UserName, args.Replace("@", ""), StringComparison.InvariantCultureIgnoreCase));

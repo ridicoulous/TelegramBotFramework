@@ -18,7 +18,7 @@ namespace TelegramBotFramework.Core.Helpers
             {
                 var from = update?.Message.From ?? query?.From ?? cbQuery?.From;
                 if (from == null) return null;
-                var u = db.Users.AsNoTracking().FirstOrDefault(x => x.UserId == from.Id) ?? new TelegramBotUser
+                var u = db.TelegramBotUsers.AsNoTracking().FirstOrDefault(x => x.UserId == from.Id) ?? new TelegramBotUser
                 {
                     FirstSeen = DateTime.Now,
                     Points = 0,

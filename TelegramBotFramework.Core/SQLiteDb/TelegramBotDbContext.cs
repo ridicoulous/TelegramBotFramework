@@ -17,9 +17,9 @@ namespace TelegramBotFramework.Core.SQLiteDb
             _db = dbName;
             InMemory = inMemory;
         }
-        public DbSet<TelegramBotUser> Users { get; set; }
-        public DbSet<TelegramBotSetting> Settings { get; set; }
-        public DbSet<TelegramBotGroup> Groups { get; set; }
+        public DbSet<TelegramBotUser> TelegramBotUsers { get; set; }
+        public DbSet<TelegramBotSetting> TelegramBotSettings { get; set; }
+        public DbSet<TelegramBotGroup> TelegramBotGroups { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

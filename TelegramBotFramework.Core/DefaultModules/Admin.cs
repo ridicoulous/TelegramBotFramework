@@ -105,7 +105,7 @@ namespace TelegramBotFramework.DefaultModules
         public CommandResponse GetUsersList(CommandEventArgs args)
         {
             var sb = new StringBuilder();
-            var users = BotWrapper.Db.Users.AsNoTracking().ToList();
+            var users = BotWrapper.Db.TelegramBotUsers.AsNoTracking().ToList();
             foreach (var u in users)
             {
                 sb.Append($"{u.UserId}: {u.Name} {u.UserName} {u.IsBotAdmin} {u.FirstSeen}\n");

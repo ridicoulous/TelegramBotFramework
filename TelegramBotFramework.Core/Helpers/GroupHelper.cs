@@ -12,7 +12,7 @@ namespace TelegramBotFramework.Core.Helpers
         {
             var from = update?.Message?.Chat;
             if (from == null) return null;
-            var u = db.Groups.FirstOrDefault(c => c.ID == from.Id) ?? new TelegramBotGroup
+            var u = db.TelegramBotGroups.FirstOrDefault(c => c.ID == from.Id) ?? new TelegramBotGroup
             {
                 GroupId = from.Id
             };
