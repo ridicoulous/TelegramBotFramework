@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,7 +21,7 @@ namespace TelegramBotFramework.Example.SimpleBotExample.Modules
         [ChatCommand(Triggers = new[] { "hello" }, HelpText = "Hello world")]
         public virtual CommandResponse Hello(CommandEventArgs args)
         {
-            return new CommandResponse($"How are you, `{args.SourceUser.UserName ?? $"stranger"} with id {args.SourceUser.UserId}`", parseMode: ParseMode.Markdown);
+            return new CommandResponse($"How are you, `{args.SourceUser.UserName ?? $"stranger"} with id {args.SourceUser.UserId}` ```{JsonConvert.SerializeObject(args.Message.From)}```", parseMode: ParseMode.Markdown);
         }
 
         [ChatCommand(Triggers = new[] { "buttons" }, HelpText = "Hello buttons, user single value submit")]

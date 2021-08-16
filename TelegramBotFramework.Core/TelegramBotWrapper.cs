@@ -199,10 +199,7 @@ namespace TelegramBotFramework.Core
                     Log.WriteLine($"Loading {botModule.GetType().Name} ({moduleAttributes.Name}) module");
                     var currentBot = this.GetType();
                     object instance = null;
-                    if (moduleAttributes.Name == "CrudSimple")
-                    {
-
-                    }
+               
                     var constructs = botModule.GetConstructors();
                     foreach (var c in constructs)
                     {
@@ -309,6 +306,7 @@ namespace TelegramBotFramework.Core
                 if (String.IsNullOrEmpty(Options.WebHookUrl))
                 {
                     Bot.DeleteWebhookAsync();
+                    
                     Bot.OnUpdate += BotOnUpdateReceived;
                     Bot.OnInlineQuery += BotOnOnInlineQuery;
                     Bot.OnCallbackQuery += BotOnOnCallbackQuery;
@@ -331,6 +329,11 @@ namespace TelegramBotFramework.Core
                 Thread.Sleep(TimeSpan.FromSeconds(2));
             }
             Log.WriteLine("Connected to Telegram and listening..." + Me.FirstName + Me.LastName);
+        }
+
+        private void Bot_OnMessage(object sender, MessageEventArgs e)
+        {
+            //throw new NotImplementedException();
         }
 
         private void Bot_OnReceiveGeneralError(object sender, ReceiveGeneralErrorEventArgs e)
@@ -699,6 +702,8 @@ namespace TelegramBotFramework.Core
                 if (update.Message.Chat.Type != ChatType.Private)
                 {
                     group = GroupHelper.GetGroup(Db, update);
+                    Log.WriteLine($"{update.Type} in group {group.GroupId}: {JsonConvert.SerializeObject(update)}", LogLevel.Info, ConsoleColor.Cyan, "groups.log");
+
                 }
                 Log.WriteLine(chat, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
                 Log.WriteLine(msg, LogLevel.Info, ConsoleColor.White, "telegram.log");
@@ -774,7 +779,7 @@ namespace TelegramBotFramework.Core
                     }
                     return;
                 }
-                if (update.Message.Text.StartsWith("!") || update.Message.Text.StartsWith("/"))
+                if ((update.Message?.Text??"").StartsWith("!") || (update.Message?.Text ??"").StartsWith("/"))
                 {
                     var args = GetParameters(update.Message.Text);
                     foreach (var command in Commands)

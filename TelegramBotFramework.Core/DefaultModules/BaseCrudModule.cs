@@ -31,13 +31,13 @@ namespace TelegramBotFramework.Core.DefaultModules
 
         }
 
-        [ChatCommand(Triggers = new[] { "crud" }, DevOnly = true, DontSearchInline = true)]
+        [ChatCommand(Triggers = new[] { "crud" }, BotAdminOnly = true, HelpText ="Entities updating")]
         public CommandResponse GetAllEntitesForCrud(CommandEventArgs args)
         {
             var entitesToEdit = GetEditableEntites();
             return new CommandResponse("Choose entity set for edit:", menu: GenerateMenuForEntity(entitesToEdit));
         }
-        [CallbackCommand(Trigger = BotCrudActions.EditEntity, BotAdminOnly = true)]
+        [CallbackCommand(Trigger = BotCrudActions.EditEntity, BotAdminOnly =true)]
         public CommandResponse OnEntityTypeChoosed(CallbackEventArgs args)
         {
             using (var db = BotWrapper.Db)
@@ -181,7 +181,7 @@ namespace TelegramBotFramework.Core.DefaultModules
             var menu = new Menu()
             {
                 Columns = 1,
-                Buttons = entities.Select(f => new InlineButton($"Edit: {f.FullName}", action, f.FullName)).ToList()
+                Buttons = entities.Select(f => new InlineButton($"Edit: {f.Name}", action, f.FullName)).ToList()
             };
             return menu;
         }

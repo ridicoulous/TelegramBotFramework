@@ -35,7 +35,7 @@ namespace TelegramBotFramework.Core.Helpers
                     var where = update != null ? update.Message.Chat.Title ?? "Private" : "Using inline query";
                     u.LastHeard = DateTime.Now;
                     u.LastState = "talking in " + where;
-                    u.Points += update?.Message.Text.Length ?? 0 * 10;
+                    u.Points += update?.Message?.Text?.Length ?? 0 * 10;
                 }
                 u.Save(db);
                 return u;
