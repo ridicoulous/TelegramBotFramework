@@ -1,28 +1,31 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
+﻿
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
-using Telegram.Bot.Args;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.InlineQueryResults;
-using Telegram.Bot.Types.ReplyMarkups;
-using TelegramBotFramework.Core.DefaultModules;
 using TelegramBotFramework.Core.Extensions;
 using TelegramBotFramework.Core.Helpers;
 using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.Logging;
 using TelegramBotFramework.Core.Objects;
 using TelegramBotFramework.Core.SQLiteDb;
+
+using Telegram.Bot.Exceptions;
+using Telegram.Bot.Extensions.Polling;
+
+using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Bot.Types.InlineQueryResults;
+using Newtonsoft.Json;
+using Telegram.Bot.Types.Payments;
 
 namespace TelegramBotFramework.Core
 {
@@ -108,6 +111,14 @@ namespace TelegramBotFramework.Core
             DbContextFactory = contextFactory;
 
             Options = options;
+            if (Options.InMemoryDb)
+            {
+                using (var db = DbContextFactory.CreateDbContext())
+                {
+                    db.Database.EnsureCreated();
+                    db.Database.Migrate();
+                }
+            }
             if (!String.IsNullOrEmpty(options.Directory))
             {
                 RootDirectory = options.Directory;
@@ -200,7 +211,7 @@ namespace TelegramBotFramework.Core
                     Log.WriteLine($"Loading {botModule.GetType().Name} ({moduleAttributes.Name}) module");
                     var currentBot = this.GetType();
                     object instance = null;
-               
+
                     var constructs = botModule.GetConstructors();
                     foreach (var c in constructs)
                     {
@@ -296,7 +307,58 @@ namespace TelegramBotFramework.Core
             if (ex != null)
                 ExceptionHappened(ex);
         }
+        Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
+        {
+            var ErrorMessage = exception switch
+            {
+                ApiRequestException apiRequestException
+                    => $"Telegram API Error:\n[{apiRequestException.ErrorCode}]\n{apiRequestException.Message}",
+                _ => exception.ToString()
+            };
 
+            Console.WriteLine(ErrorMessage);
+            return Task.CompletedTask;
+        }
+        async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            switch (update.Type)
+            {
+                case UpdateType.Unknown:                    
+                case UpdateType.Message:                    
+                    await Task.Run(() => Handle(update));
+                    break;
+                case UpdateType.InlineQuery:
+                    await Task.Run(() => BotOnOnInlineQuery(update.InlineQuery));
+                    break;
+                case UpdateType.ChosenInlineResult:
+                    break;
+                case UpdateType.CallbackQuery:
+                    await Task.Run(() => BotOnOnCallbackQuery(update.CallbackQuery));
+                    break;
+                case UpdateType.EditedMessage:
+                    break;
+                case UpdateType.ChannelPost:
+                    break;
+                case UpdateType.EditedChannelPost:
+                    break;
+                case UpdateType.ShippingQuery:
+                    break;
+                case UpdateType.PreCheckoutQuery:
+                    break;
+                case UpdateType.Poll:
+                    break;
+                case UpdateType.PollAnswer:
+                    break;
+                case UpdateType.MyChatMember:
+                    break;
+                case UpdateType.ChatMember:
+                    break;
+                case UpdateType.ChatJoinRequest:
+                    break;
+                default:
+                    break;
+            }
+        }
         public void Run()
         {
             Bot = new TelegramBotClient(LoadedSetting.TelegramBotAPIKey);
@@ -307,13 +369,13 @@ namespace TelegramBotFramework.Core
                 if (String.IsNullOrEmpty(Options.WebHookUrl))
                 {
                     Bot.DeleteWebhookAsync();
-                    
-                    Bot.OnUpdate += BotOnUpdateReceived;
-                    Bot.OnInlineQuery += BotOnOnInlineQuery;
-                    Bot.OnCallbackQuery += BotOnOnCallbackQuery;
-                    Bot.OnReceiveError += Bot_OnReceiveError;
-                    Bot.OnReceiveGeneralError += Bot_OnReceiveGeneralError;
-                    Bot.StartReceiving();
+                    Bot.StartReceiving(HandleUpdateAsync, HandleErrorAsync);
+                    //Bot.OnUpdate += BotOnUpdateReceived;
+                    //Bot.OnInlineQuery += BotOnOnInlineQuery;
+                    //Bot.OnCallbackQuery += BotOnOnCallbackQuery;
+                    //Bot.OnReceiveError += Bot_OnReceiveError;
+                    //Bot.OnReceiveGeneralError += Bot_OnReceiveGeneralError;
+                    //Bot.StartReceiving();
                 }
                 else
                 {
@@ -332,25 +394,7 @@ namespace TelegramBotFramework.Core
             Log.WriteLine("Connected to Telegram and listening..." + Me.FirstName + Me.LastName);
         }
 
-        private void Bot_OnMessage(object sender, MessageEventArgs e)
-        {
-            //throw new NotImplementedException();
-        }
-
-        private void Bot_OnReceiveGeneralError(object sender, ReceiveGeneralErrorEventArgs e)
-        {
-            Log.WriteLine(e.Exception.ToString(), LogLevel.Error, null, "error.log");
-            SendMessageToAll(e.Exception.Message);
-
-        }
-
-        private void Bot_OnReceiveError(object sender, ReceiveErrorEventArgs e)
-        {
-            Log.WriteLine(e.ApiRequestException.ToString(), LogLevel.Error, null, "error.log");
-            SendMessageToAll(e.ApiRequestException.Message);
-        }
-
-        private void BotOnOnCallbackQuery(object sender, CallbackQuery query)
+        private void BotOnOnCallbackQuery(CallbackQuery query)
         {
             var trigger = query.Data.Split('|')[0];
             var args = query.Data.Replace(trigger + "|", "");
@@ -395,79 +439,10 @@ namespace TelegramBotFramework.Core
                 return;
             }
         }
-        private void BotOnOnCallbackQuery(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
-        {
-
-            var query = callbackQueryEventArgs.CallbackQuery;
-            var trigger = query.Data.Split('|')[0];
-            var args = query.Data.Replace(trigger + "|", "");
-            var user = UserHelper.GetTelegramUser(Db, LoadedSetting.TelegramDefaultAdminUserId, cbQuery: query);
-
-
-            //extract the trigger
-
-
-            if (user.Grounded) return;
-            Log.WriteLine(query.From.FirstName, LogLevel.Info, ConsoleColor.Cyan, "telegram.log");
-            Log.WriteLine(query.Data, LogLevel.Info, ConsoleColor.White, "telegram.log");
-            foreach (var callback in CallbackCommands)
-            {
-                if (String.Equals(callback.Key.Trigger, trigger, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    var eArgs = new CallbackEventArgs()
-                    {
-                        SourceUser = user,
-                        Parameters = args,
-                        Target = query.Message.Chat.Id.ToString(),
-                        Messenger = Messenger,
-                        Bot = Bot,
-                        Query = query
-                    };
-                    var response = callback.Value.Invoke(eArgs);
-                    if (!String.IsNullOrWhiteSpace(response?.Text))
-                    {
-                        Send(response, query.Message, true);
-                    }
-                }
-            }
-            if (UsersWaitingAnswers.ContainsKey(query.Message.Chat.Id) && CurrentUserUpdatingObjects != null && CurrentUserUpdatingObjects.ContainsKey(query.Message.Chat.Id))
-            {
-                query.Message.Text = args;
-                // query.Message.Type = MessageType.Text;
-                var h = SurveyAnswersHandlers.FirstOrDefault(c => c.Key.Name == CurrentUserUpdatingObjects[query.Message.Chat.Id].GetType().Name);
-
-                var customAnswerHandler = h.Value == null ? SurveyAnswersHandlers.FirstOrDefault() : h;
-                var response = customAnswerHandler.Value.Invoke(query.Message);
-                Send(response, query.Message);
-                return;
-            }
-        }
-        private void BotOnOnInlineQuery(object sender, InlineQuery query)
+        private void BotOnOnInlineQuery(InlineQuery query)
         {
             try
             {
-
-                new Thread(() => HandleQuery(query)).Start();
-            }
-            catch (Exception e)
-            {
-                while (e.InnerException != null)
-                    e = e.InnerException;
-                var message = e.GetType() + " - " + e.Message;
-                if (e is FileNotFoundException)
-                    message += " file: " + ((FileNotFoundException)e).FileName;
-                //else if (e is DirectoryNotFoundException)
-                //    message += " file: " + ((DirectoryNotFoundException)e).;
-                message += Environment.NewLine + e.StackTrace;
-                Log.WriteLine($"Error in message handling: {message}", LogLevel.Error, fileName: "telegram.log");
-            }
-        }
-        private void BotOnOnInlineQuery(object sender, InlineQueryEventArgs inlineQueryEventArgs)
-        {
-            try
-            {
-                var query = inlineQueryEventArgs.InlineQuery;
-
                 new Thread(() => HandleQuery(query)).Start();
             }
             catch (Exception e)
@@ -489,7 +464,7 @@ namespace TelegramBotFramework.Core
             var user = UserHelper.GetTelegramUser(Db, LoadedSetting.TelegramDefaultAdminUserId, null, query);
             if (user.Grounded)
             {
-                await Bot.AnswerInlineQueryAsync(query.Id, new InlineQueryResultBase[]
+                await Bot.AnswerInlineQueryAsync(query.Id, new InlineQueryResult[]
                 {
                     new InlineQueryResultArticle("0", "Nope!", new InputTextMessageContent("I did bad things, and now I'm grounded from the bot."))
                     {
@@ -510,7 +485,7 @@ namespace TelegramBotFramework.Core
             if (user.IsBotAdmin)
                 choices.AddRange(Commands.Where(x => x.Key.BotAdminOnly && x.Key.AllowInlineAdmin && x.Key.Triggers.Any(t => t == com[0])));
 
-            var results = new List<InlineQueryResultBase>();
+            var results = new List<InlineQueryResult>();
             foreach (var c in choices)
             {
                 var response = c.Value.Invoke(new CommandEventArgs
@@ -537,7 +512,6 @@ namespace TelegramBotFramework.Core
                 })
                 {
                     Description = description,
-                    Title = title,
                     ThumbUrl = response.ImageUrl,
                     Url = response.ImageUrl,
                     HideUrl = true
@@ -570,12 +544,12 @@ namespace TelegramBotFramework.Core
                 }
                 if (update.Type == UpdateType.CallbackQuery)
                 {
-                    BotOnOnCallbackQuery("webhook", update.CallbackQuery);
+                    BotOnOnCallbackQuery(update.CallbackQuery);
                     return;
                 }
                 if (update.Type == UpdateType.InlineQuery)
                 {
-                    BotOnOnInlineQuery("webhook", update.InlineQuery);
+                    BotOnOnInlineQuery( update.InlineQuery);
                     return;
                 }
 
@@ -584,7 +558,6 @@ namespace TelegramBotFramework.Core
                     new Thread(() => HandlePreCheckout(update)).Start();
                     return;
                 }
-                if (update.Type == UpdateType.InlineQuery) return;
 
 
                 new Thread(() => Handle(update)).Start();
@@ -602,19 +575,16 @@ namespace TelegramBotFramework.Core
                 Log.WriteLine($"Error in message handling: {message}", LogLevel.Error, fileName: "telegram.log");
             }
         }
-        private void BotOnUpdateReceived(object sender, UpdateEventArgs updateEventArgs)
+        private void BotOnUpdateReceived(object sender, Update update)
         {
             try
             {
-                var update = updateEventArgs.Update;
-
                 if (update.Type == UpdateType.PreCheckoutQuery || update.Message?.SuccessfulPayment != null)
                 {
                     new Thread(() => HandlePreCheckout(update)).Start();
                     return;
                 }
-                if (update.Type == UpdateType.InlineQuery) return;
-                //if (update.Type == UpdateType.CallbackQuery) return;
+               
 
                 if (!(update.Message?.Date > DateTime.UtcNow.AddSeconds(-15)))
                 {
@@ -671,19 +641,22 @@ namespace TelegramBotFramework.Core
         }
         public void SendInvoice(InvoiceDto invoice)
         {
-            if (String.IsNullOrEmpty(Options.PaymentToken))
-            {
-                SendMessageToAll("Need to provide payment token");
-                return;
-            }
-            UserInvoices.Add(invoice);
-            Bot.SendInvoiceAsync((int)invoice.UserId, invoice.Title, invoice.Description, invoice.PayloadId, Options.PaymentToken, invoice.PayloadId, invoice.Currency, invoice.Goods);
+            throw new NotImplementedException();
+            //if (String.IsNullOrEmpty(Options.PaymentToken))
+            //{
+            //    SendMessageToAll("Need to provide payment token");
+            //    return;
+            //}
+            //UserInvoices.Add(invoice);
+            //Bot.SendInvoiceAsync((int)invoice.UserId, invoice.Title, invoice.Description, 
+            //    invoice.PayloadId,
+            //    Options.PaymentToken,"USD",new List<LabeledPrice>() { new LabeledPrice("") },
+            //    invoice.PayloadId, invoice.Currency, invoice.Goods);
         }
         internal void Handle(Update update)
         {
             try
             {
-
                 if (update.Type == UpdateType.CallbackQuery && String.IsNullOrEmpty(update.Message.Text))
                 {
                     var trigger = update.CallbackQuery.Data.Split('|')[0];
@@ -780,7 +753,7 @@ namespace TelegramBotFramework.Core
                     }
                     return;
                 }
-                if ((update.Message?.Text??"").StartsWith("!") || (update.Message?.Text ??"").StartsWith("/"))
+                if ((update.Message?.Text ?? "").StartsWith("!") || (update.Message?.Text ?? "").StartsWith("/"))
                 {
                     var args = GetParameters(update.Message.Text);
                     foreach (var command in Commands)
@@ -849,7 +822,7 @@ namespace TelegramBotFramework.Core
                 Log.WriteLine("Exception happend at handling update:\n" + ex.ToString(), LogLevel.Error, ConsoleColor.Cyan, "error.log");
             }
         }
-        
+
 
         private static string[] GetParameters(string input)
         {
@@ -883,13 +856,13 @@ namespace TelegramBotFramework.Core
                 }
                 else
                 {
-                    foreach(var batch in text.ToCharArray().Batch(4096))
+                    foreach (var batch in text.ToCharArray().Batch(4096))
                     {
-                        Bot.SendTextMessageAsync(targetId, new string(batch.ToArray()), replyMarkup: 
+                        Bot.SendTextMessageAsync(targetId, new string(batch.ToArray()), replyMarkup:
                             CreateMarkupFromMenu(response.Menu),
                             parseMode: response.ParseMode);
                     }
-                  
+
                 }
                 //Bot.SendTextMessage(update.Message.Chat.Id, text);
                 return;
@@ -968,12 +941,10 @@ namespace TelegramBotFramework.Core
                 do
                 {
                     var cur = menu.Buttons[i];
-                    row.Add(new InlineKeyboardButton
-                    {
-                        Text = cur.Text,
-                        CallbackData = $"{cur.Trigger}|{cur.ExtraData}",
-                        Url = cur.Url
-                    });
+                    var button = new InlineKeyboardButton(cur.Text);
+                    button.CallbackData = $"{cur.Trigger}|{cur.ExtraData}";
+                    button.Url = cur.Url;
+                    row.Add(button);
                     i++;
                     if (i == menu.Buttons.Count) break;
                 } while (i % (col + 1) != 0);

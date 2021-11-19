@@ -12,7 +12,7 @@ namespace TelegramBotFramework.Core.Objects
         public InvoiceDto(long userId, string title, string description,  string currency, string product, int amount)
         {
             UserId = userId;
-            Goods = new List<LabeledPrice>() { new LabeledPrice() { Amount=amount,Label=product} };
+            Goods = new List<LabeledPrice>() { new LabeledPrice(product,amount)};
             Title = title;
             Description = description;
             Currency = currency;

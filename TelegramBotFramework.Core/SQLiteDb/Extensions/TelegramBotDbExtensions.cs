@@ -141,7 +141,7 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
             //check for a user mention
             var mention = message?.Entities.FirstOrDefault(x => x.Type == MessageEntityType.Mention);
             var textmention = message?.Entities.FirstOrDefault(x => x.Type == MessageEntityType.TextMention);
-            var id = 0;
+            long id = 0;
             var username = "";
             if (mention != null)
                 username = message.Text.Substring(mention.Offset + 1, mention.Length - 1);

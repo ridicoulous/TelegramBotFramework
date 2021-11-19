@@ -17,7 +17,11 @@ namespace TelegramBotFramework.Example.SimpleBotExample.Modules
         public SimpleEchoModule(SimpleTelegramBot wrapper) : base(wrapper)
         {
         }
-
+        [ChatCommand(Triggers = new[] { "long" }, HelpText = "Long message batch")]
+        public virtual CommandResponse Long(CommandEventArgs args)
+        {
+            return new CommandResponse(new string('t',4128));
+        }
         [ChatCommand(Triggers = new[] { "hello" }, HelpText = "Hello world")]
         public virtual CommandResponse Hello(CommandEventArgs args)
         {
@@ -28,14 +32,14 @@ namespace TelegramBotFramework.Example.SimpleBotExample.Modules
         public virtual CommandResponse Buttons(CommandEventArgs args)
         {
             var buttonsMenu = new Menu(1, Enumerable.Range(0, 5).Select(c => new InlineButton($"Button {c}", "buttonpress", c.ToString())).ToList());
-            return new CommandResponse($"Press the button below:", menu: buttonsMenu, parseMode: ParseMode.Default);
+            return new CommandResponse($"Press the button below:", menu: buttonsMenu, parseMode: ParseMode.MarkdownV2);
         }
 
         [CallbackCommand(Trigger = "buttonpress", BotAdminOnly = true)]
         public CommandResponse CancelOrder(CallbackEventArgs args)
         {
             var p = args.Parameters;
-            return new CommandResponse($"You pressed `{p}` button", parseMode: ParseMode.Default);
+            return new CommandResponse($"You pressed `{p}` button", parseMode: ParseMode.MarkdownV2);
         }
     }
     [TelegramBotModule(Author = "ridicoulous", IsModuleActive = true, Name = "CrudBotModuleTest", Version = "1.0")]

@@ -162,7 +162,7 @@ namespace TelegramBotFramework.Core.Objects
         /// <param name="replyMarkup">Reply markup.  Optional</param>
         /// <param name="parseMode">How the text should be parsed</param>
 
-        public CommandResponse(string msg, ResponseLevel level = ResponseLevel.Public, Menu menu = null, ParseMode parseMode = ParseMode.Default, string imgUrl = null)
+        public CommandResponse(string msg, ResponseLevel level = ResponseLevel.Public, Menu menu = null, ParseMode parseMode = ParseMode.Markdown, string imgUrl = null)
         {
             Text = msg;
             Level = level;
