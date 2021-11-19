@@ -104,7 +104,7 @@ namespace TelegramBotFramework.Core.DefaultModules
             {
                 AddFieldForEditName(args.SourceUser.Id, args.Parameters);
                 var entryValue = _currentUpdatingEntryValue[args.SourceUser.Id] as IEditableEntity;
-                return new CommandResponse($"Write `{args.Parameters}` field of `{entryValue.EntityReadableName}` value:", parseMode: Telegram.Bot.Types.Enums.ParseMode.MarkdownV2V2);
+                return new CommandResponse($"Write `{args.Parameters}` field of `{entryValue.EntityReadableName}` value:", parseMode: Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
             }
             catch (Exception ex)
             {
