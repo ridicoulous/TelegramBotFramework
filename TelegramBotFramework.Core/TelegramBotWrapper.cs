@@ -17,6 +17,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
 using TelegramBotFramework.Core.DefaultModules;
+using TelegramBotFramework.Core.Extensions;
 using TelegramBotFramework.Core.Helpers;
 using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.Logging;
@@ -882,8 +883,13 @@ namespace TelegramBotFramework.Core
                 }
                 else
                 {
-                    Bot.SendTextMessageAsync(targetId, text, replyMarkup: CreateMarkupFromMenu(response.Menu),
-                        parseMode: response.ParseMode);
+                    foreach(var batch in text.ToCharArray().Batch(4096))
+                    {
+                        Bot.SendTextMessageAsync(targetId, new string(batch.ToArray()), replyMarkup: 
+                            CreateMarkupFromMenu(response.Menu),
+                            parseMode: response.ParseMode);
+                    }
+                  
                 }
                 //Bot.SendTextMessage(update.Message.Chat.Id, text);
                 return;

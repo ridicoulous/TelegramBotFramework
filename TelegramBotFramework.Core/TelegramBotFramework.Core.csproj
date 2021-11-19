@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>TelegramBotFramework</PackageId>
     <Authors>ridicoulous</Authors>
@@ -11,8 +11,8 @@
     <RepositoryUrl>https://github.com/ridicoulous/TelegramBotFramework</RepositoryUrl>
     <RepositoryType>GitHub</RepositoryType>
     <PackageTags>telegram telegram-bot bot-framework</PackageTags>
-
-    <Version>0.6.2</Version>
+	  <LangVersion>latest</LangVersion>
+    <Version>0.6.3</Version>
     <Copyright>ridicoulous</Copyright>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <PackageReleaseNotes>05/23/2021 - injected IDbContextFactory for simple CRUD module</PackageReleaseNotes>
