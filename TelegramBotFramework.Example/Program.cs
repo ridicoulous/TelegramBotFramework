@@ -18,10 +18,10 @@ namespace TelegramBotFramework.Example
             Set at this file properties Copy to output directory: Copy if newer and run this application.
             TelegramBotWrapper provides a simple bots menue. Just send /menu or /42 and test this examp
             */
-            //var builder = new ConfigurationBuilder().AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-            //var configuration = builder.Build();
+            var builder = new ConfigurationBuilder().AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+            var configuration = builder.Build();
 
-            var opts = new DefaultBotOptions("750041793:AAFfA2m5hBCpM3GiqXVR5hOlrbtJkoy7df0", 166938818);
+            var opts = new DefaultBotOptions(configuration["key"], int.Parse(configuration["admin"]));
             opts.InMemoryDb = false;
 
             var bot = new SimpleTelegramBot(opts);
