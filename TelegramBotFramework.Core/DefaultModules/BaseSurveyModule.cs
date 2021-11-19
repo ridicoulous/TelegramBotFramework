@@ -88,7 +88,7 @@ namespace TelegramBotFramework.Core.DefaultModules
                 menu = CreateButtonsWithCallback("choose", BotWrapper.UsersWaitingAnswers[userId].Peek().Choises);
             }
 
-            return new CommandResponse($"{BotWrapper.UsersWaitingAnswers[userId].Peek().QuestionText}", menu: menu, parseMode: ParseMode.Markdown);
+            return new CommandResponse($"{BotWrapper.UsersWaitingAnswers[userId].Peek().QuestionText}", menu: menu, parseMode: ParseMode.MarkdownV2);
         }
         public virtual bool HandleResponse(Message message)
         {
@@ -97,7 +97,7 @@ namespace TelegramBotFramework.Core.DefaultModules
                 var question = BotWrapper.UsersWaitingAnswers[message.Chat.Id].Peek();
                 if (question.Choises.Any() && !question.Choises.Contains(message.Text.Trim()))
                 {
-                    BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `Submitted {message.Text} is not allowed value`", ParseMode.Markdown).Wait();
+                    BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `Submitted {message.Text} is not allowed value`", ParseMode.MarkdownV2).Wait();
                     return false;
                 }
                 PropertyInfo propertyInfo = BotWrapper.CurrentUserUpdatingObjects[message.Chat.Id].GetType().GetProperty(question.UpdatingPropertyName);
@@ -121,7 +121,7 @@ namespace TelegramBotFramework.Core.DefaultModules
             }
             catch (Exception ex)
             {
-                BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `{ex.Message}`", ParseMode.Markdown).Wait();
+                BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Catched error at handling ansver: `{ex.Message}`", ParseMode.MarkdownV2).Wait();
                 if (LastAnswerMessageId.ContainsKey(message.Chat.Id))
                 {
                     LastAnswerMessageId[message.Chat.Id] = message.MessageId;
@@ -153,11 +153,11 @@ namespace TelegramBotFramework.Core.DefaultModules
             if (HandleResponse(message))
             {
                 BotWrapper.UsersWaitingAnswers[message.Chat.Id].Dequeue();        
-                BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} accepted", ParseMode.Markdown).Wait();
+                BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} accepted", ParseMode.MarkdownV2).Wait();
             }
             else
             {                
-                BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} was not accepted, try again, please", ParseMode.Markdown).Wait();
+                BotWrapper.Bot.SendTextMessageAsync(message.Chat, $"Answer for {question.QuestionText} was not accepted, try again, please", ParseMode.MarkdownV2).Wait();
             }
             try
             {

@@ -40,7 +40,7 @@ namespace TelegramBotFramework.DefaultModules
                 "Donates are greatly appreciated:\n" +
                 "`3A1pFjyRu4eeGrZTMXWNp2LyEZbeUDLENN`\n" +
                 "`0x6fea7665684584884124c1867d7ec31b56c43373`\n" +
-                "Feel free to open the issues at GitHub", parseMode: ParseMode.Markdown);
+                "Feel free to open the issues at GitHub", parseMode: ParseMode.MarkdownV2);
         }
 
         [ChatCommand(Triggers = new[] { "modules" }, DontSearchInline = true, HelpText = "Show a list of modules currently loaded")]
@@ -74,7 +74,7 @@ namespace TelegramBotFramework.DefaultModules
                 menu.Buttons.Add(new InlineButton(att.Triggers[0], "c", att.Triggers[0]));
             }
 
-            return new CommandResponse(sb.ToString(), parseMode: ParseMode.Markdown, menu: menu);
+            return new CommandResponse(sb.ToString(), parseMode: ParseMode.MarkdownV2, menu: menu);
         }
 
         [CallbackCommand(Trigger = "c", HelpText = "Gets information on a command")]
@@ -91,7 +91,7 @@ namespace TelegramBotFramework.DefaultModules
                 sb.AppendLine("*Parameters*");
             foreach (var p in c.Parameters)
                 sb.AppendLine($"\t{p}");
-            return new CommandResponse(sb.ToString(), parseMode: ParseMode.Markdown);
+            return new CommandResponse(sb.ToString(), parseMode: ParseMode.MarkdownV2);
         }
 
         [ChatCommand(Triggers = new[] { "commands" }, HelpText = "commands <module name> - show all commands in the module", DontSearchInline =true, Parameters = new[] { "<module name>" })]
@@ -110,7 +110,7 @@ namespace TelegramBotFramework.DefaultModules
                 sb.AppendLine($"*{att.Triggers[0]}*: {att.HelpText ?? method.Name}");
             }
 
-            return new CommandResponse(sb.ToString(), parseMode: ParseMode.Markdown);
+            return new CommandResponse(sb.ToString(), parseMode: ParseMode.MarkdownV2);
         }
 
         [ChatCommand(Triggers = new[] {"42", "menu" }, HelpText = "Menue builded from all awailable")]
@@ -131,7 +131,7 @@ namespace TelegramBotFramework.DefaultModules
                     }
                 }
             }
-            return new CommandResponse(sb.ToString(), parseMode: ParseMode.Markdown);
+            return new CommandResponse(sb.ToString(), parseMode: ParseMode.MarkdownV2);
         }
 
 

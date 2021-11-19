@@ -132,7 +132,7 @@ namespace TelegramBotFramework.DefaultModules
         //            public static void Main(string[] args) {
         //                " + args.Parameters + @"
         //            }
-        //        }").Result, parseMode: ParseMode.Markdown);
+        //        }").Result, parseMode: ParseMode.MarkdownV2);
         //}
 
         //[ChatCommand(Triggers = new[] { "tg" }, DevOnly = true, AllowInlineAdmin = true)]
@@ -163,7 +163,7 @@ namespace TelegramBotFramework.DefaultModules
         //                Console.WriteLine(e.InnerExceptions[0].Message);
         //                }
         //            }
-        //        }").Result, parseMode: ParseMode.Markdown);
+        //        }").Result, parseMode: ParseMode.MarkdownV2);
         //}
 
         //private static async Task<string> CompileCs(string code)

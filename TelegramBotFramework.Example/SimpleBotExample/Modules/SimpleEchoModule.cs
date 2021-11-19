@@ -25,21 +25,21 @@ namespace TelegramBotFramework.Example.SimpleBotExample.Modules
         [ChatCommand(Triggers = new[] { "hello" }, HelpText = "Hello world")]
         public virtual CommandResponse Hello(CommandEventArgs args)
         {
-            return new CommandResponse($"How are you, `{args.SourceUser.UserName ?? $"stranger"} with id {args.SourceUser.UserId}` ```{JsonConvert.SerializeObject(args.Message.From)}```", parseMode: ParseMode.Markdown);
+            return new CommandResponse($"How are you, `{args.SourceUser.UserName ?? $"stranger"} with id {args.SourceUser.UserId}` ```{JsonConvert.SerializeObject(args.Message.From)}```", parseMode: ParseMode.MarkdownV2);
         }
 
         [ChatCommand(Triggers = new[] { "buttons" }, HelpText = "Hello buttons, user single value submit")]
         public virtual CommandResponse Buttons(CommandEventArgs args)
         {
             var buttonsMenu = new Menu(1, Enumerable.Range(0, 5).Select(c => new InlineButton($"Button {c}", "buttonpress", c.ToString())).ToList());
-            return new CommandResponse($"Press the button below:", menu: buttonsMenu, parseMode: ParseMode.MarkdownV2);
+            return new CommandResponse($"Press the button below:", menu: buttonsMenu, parseMode: ParseMode.MarkdownV2V2);
         }
 
         [CallbackCommand(Trigger = "buttonpress", BotAdminOnly = true)]
         public CommandResponse CancelOrder(CallbackEventArgs args)
         {
             var p = args.Parameters;
-            return new CommandResponse($"You pressed `{p}` button", parseMode: ParseMode.MarkdownV2);
+            return new CommandResponse($"You pressed `{p}` button", parseMode: ParseMode.MarkdownV2V2);
         }
     }
     [TelegramBotModule(Author = "ridicoulous", IsModuleActive = true, Name = "CrudBotModuleTest", Version = "1.0")]
