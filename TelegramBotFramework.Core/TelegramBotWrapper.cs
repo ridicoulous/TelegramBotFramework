@@ -630,7 +630,7 @@ namespace TelegramBotFramework.Core
                         Target = payedInvoice.UserId.ToString(),
                         Response = new CommandResponse($"Your payment was received.\n" +
                         $"`Id: {payedInvoice.PaymentProviderId}`\n" +
-                        $"`Summ: {update.Message.SuccessfulPayment.TotalAmount / 100} {payedInvoice.Currency}`", parseMode: ParseMode.MarkdownV2)
+                        $"`Summ: {update.Message.SuccessfulPayment.TotalAmount / 100} {payedInvoice.Currency}`", parseMode: ParseMode.Markdown)
                     });
 
                     OnPaymentReceived?.Invoke(payedInvoice);
@@ -969,15 +969,15 @@ namespace TelegramBotFramework.Core
                             users = users.Where(c => c.UserId == LoadedSetting.TelegramDefaultAdminUserId);
                         foreach (var user in users.ToList())
                         {
-                            Send(new MessageSentEventArgs(isSilent) { Response = new CommandResponse(message, ResponseLevel.Private, parseMode: ParseMode.MarkdownV2), Target = user.UserId.ToString() });
+                            Send(new MessageSentEventArgs(isSilent) { Response = new CommandResponse(message, ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = user.UserId.ToString() });
                         }
                     }
 
                 }
                 catch (Exception ex)
                 {
-                    Send(new MessageSentEventArgs() { Response = new CommandResponse(message, ResponseLevel.Private, parseMode: ParseMode.MarkdownV2), Target = LoadedSetting.TelegramDefaultAdminUserId.ToString() });
-                    Send(new MessageSentEventArgs() { Response = new CommandResponse($"Failed with `{ex.ToString()}`", ResponseLevel.Private, parseMode: ParseMode.MarkdownV2), Target = LoadedSetting.TelegramDefaultAdminUserId.ToString() });
+                    Send(new MessageSentEventArgs() { Response = new CommandResponse(message, ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = LoadedSetting.TelegramDefaultAdminUserId.ToString() });
+                    Send(new MessageSentEventArgs() { Response = new CommandResponse($"Failed with `{ex.ToString()}`", ResponseLevel.Private, parseMode: ParseMode.Markdown), Target = LoadedSetting.TelegramDefaultAdminUserId.ToString() });
                 }
             }
         }

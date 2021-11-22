@@ -104,7 +104,7 @@ namespace TelegramBotFramework.Core.DefaultModules
             {
                 AddFieldForEditName(args.SourceUser.Id, args.Parameters);
                 var entryValue = _currentUpdatingEntryValue[args.SourceUser.Id] as IEditableEntity;
-                return new CommandResponse($"Write `{args.Parameters}` field of `{entryValue.EntityReadableName}` value:", parseMode: Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
+                return new CommandResponse($"Write `{args.Parameters}` field of `{entryValue.EntityReadableName}` value:", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             }
             catch (Exception ex)
             {
@@ -228,11 +228,11 @@ namespace TelegramBotFramework.Core.DefaultModules
                 }
                 var entryValue = _currentUpdatingEntryValue[userId] as IEditableEntity;
 
-                return new CommandResponse($"Value `{userInput}` for `{entryValue.EntityReadableName}.{_currentUpdatingFieldName[userId]}` was saved", parseMode: Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
+                return new CommandResponse($"Value `{userInput}` for `{entryValue.EntityReadableName}.{_currentUpdatingFieldName[userId]}` was saved", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             }
             catch (Exception ex)
             {
-                return new CommandResponse($"Value `{userInput}` for `{_currentUpdatingFieldName[userId]}` was not saved: {ex.ToString()}", parseMode: Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
+                return new CommandResponse($"Value `{userInput}` for `{_currentUpdatingFieldName[userId]}` was not saved: {ex.ToString()}", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             }
             finally
             {
