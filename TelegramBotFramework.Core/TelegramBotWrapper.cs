@@ -62,9 +62,9 @@ namespace TelegramBotFramework.Core
         public event OnException ExceptionHappened;
         public List<InvoiceDto> UserInvoices = new List<InvoiceDto>();
         public event Action<InvoiceDto> OnPaymentReceived;
-        public Dictionary<ChatCommand, ChatCommandMethod> Commands = new Dictionary<ChatCommand, ChatCommandMethod>();
+        public Dictionary<ChatCommand, ChatCommandMethod> Commands { get; } = new Dictionary<ChatCommand, ChatCommandMethod>();
         public Dictionary<CallbackCommand, CallbackCommandMethod> CallbackCommands = new Dictionary<CallbackCommand, CallbackCommandMethod>();
-        public Dictionary<TelegramBotModule, object> Modules = new Dictionary<TelegramBotModule, object>();
+        public Dictionary<TelegramBotModule, object> Modules { get; } = new Dictionary<TelegramBotModule, object>();
         public TelegramBotLogger Log;
         /// <summary>
         /// Should be disposed!
@@ -80,6 +80,8 @@ namespace TelegramBotFramework.Core
         public ConcurrentDictionary<long, KeyValuePair<Type, IEditableEntity>> UserEditingEntity { get; set; }
 
         DbContext ITelegramBotWrapper.Db => Db;
+
+        public IEnumerable<ChatCommand> ChatCommands => Commands.Keys;
 
         public virtual void SeedBotAdmins(params int[] admins)
         {
@@ -212,32 +214,48 @@ namespace TelegramBotFramework.Core
                     var currentBot = this.GetType();
                     object instance = null;
 
-                    var constructs = botModule.GetConstructors();
+                    Type moduleToInstatiate = botModule;
+
+                    if (botModule.IsGenericType)
+                    {
+                        try
+                        {                            
+                            // Create an array of types to substitute for the type
+                            // parameters of Dictionary. The key is of type string, and
+                            // the type to be contained in the Dictionary is Test.
+                            Type[] typeArgs = { currentBot, this.Db.GetType() };
+
+                            // Create a Type object representing the constructed generic
+                            // type.
+                            Type constructed = botModule.MakeGenericType(typeArgs);
+                            moduleToInstatiate = constructed;
+
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.WriteLine($"Error happened at instatioating generic module {botModule.FullName}", LogLevel.Error, fileName: "error.log");
+
+                            Log.WriteLine(ex.ToString(),LogLevel.Error,fileName:"error.log");
+                        }
+                        //   instance = constructed.GetConstructor(typeArgs).Invoke(currentBot,);
+
+                    }
+                    var constructs = moduleToInstatiate.GetConstructors();
                     foreach (var c in constructs)
                     {
                         var paramss = c.GetParameters();
                         if (paramss.Length == 1)
                         {
-                            if (paramss[0].ParameterType == currentBot)
+                            if (paramss[0].ParameterType.IsAssignableFrom(currentBot))
                             {
                                 Log.WriteLine($"Finded constructor, invoking it for loading {moduleAttributes.Name} at {this.GetType().FullName}");
 
                                 instance = c.Invoke(new object[] { this });
                             }
-                        }
-                    }
-                    if (instance == null)
-                    {
-                        var constructor = botModule.GetConstructor(new[] { typeof(TelegramBotWrapper) });
 
-                        if (constructor == null)
-                        {
-                            Log.WriteLine($"Can not create instance of {moduleAttributes.Name}");
-                            continue;
                         }
-                        Log.WriteLine($"Finded constructor {constructor.Name}, invoking it for loading {moduleAttributes.Name} at {this.GetType().FullName}");
-                        instance = constructor.Invoke(new object[] { this });
                     }
+
                     if (instance == null)
                     {
                         Log.WriteLine($"{moduleAttributes.Name}not loaded cause can not instantiate by finding contructor");
@@ -278,7 +296,10 @@ namespace TelegramBotFramework.Core
                     }
                     foreach (var m in botModule.GetMethods().Where(x => x.IsDefined(typeof(CallbackCommand))))
                     {
+
                         var att = m.GetCustomAttributes<CallbackCommand>().First();
+                        Log.WriteLine($"Loading CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}", overrideColor: ConsoleColor.Green);
+
                         if (CallbackCommands.ContainsKey(att))
                         {
                             Log.WriteLine($"Not loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}, possible dublicate", overrideColor: ConsoleColor.Cyan);
@@ -323,8 +344,8 @@ namespace TelegramBotFramework.Core
         {
             switch (update.Type)
             {
-                case UpdateType.Unknown:                    
-                case UpdateType.Message:                    
+                case UpdateType.Unknown:
+                case UpdateType.Message:
                     await Task.Run(() => Handle(update));
                     break;
                 case UpdateType.InlineQuery:
@@ -549,7 +570,7 @@ namespace TelegramBotFramework.Core
                 }
                 if (update.Type == UpdateType.InlineQuery)
                 {
-                    BotOnOnInlineQuery( update.InlineQuery);
+                    BotOnOnInlineQuery(update.InlineQuery);
                     return;
                 }
 
@@ -584,7 +605,7 @@ namespace TelegramBotFramework.Core
                     new Thread(() => HandlePreCheckout(update)).Start();
                     return;
                 }
-               
+
 
                 if (!(update.Message?.Date > DateTime.UtcNow.AddSeconds(-15)))
                 {

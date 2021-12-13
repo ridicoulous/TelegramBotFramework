@@ -3,15 +3,15 @@ using System.Linq;
 using System.Text;
 using TelegramBotFramework.Core;
 using TelegramBotFramework.Core.Helpers;
-
+using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.Objects;
 
 namespace TelegramBotFramework.DefaultModules
 {
     [TelegramBotModule(Author = "parabola949", Name = "Admin", Version = "1.0")]
-    public class Admin : TelegramBotModuleBase<TelegramBotWrapper>
+    public class Admin<TBot,TDb> : TelegramBotModuleBase<TBot> where TBot : ITelegramBotWrapper<TDb> where TDb : DbContext,ITelegramBotDbContext
     {
-        public Admin(TelegramBotWrapper bot) : base(bot)
+        public Admin(TBot bot) : base(bot)
         {
 
         }

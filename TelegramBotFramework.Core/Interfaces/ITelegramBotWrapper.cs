@@ -17,6 +17,10 @@ namespace TelegramBotFramework.Core.Interfaces
     }
     public interface ITelegramBotWrapper
     {
+        IEnumerable<ChatCommand> ChatCommands { get;  }
+        //Dictionary<CallbackCommand, CallbackCommandMethod> CallbackCommands { get; }
+      
+        Dictionary<TelegramBotModule, object> Modules { get; }
         DbContext Db { get; }
         
         ConcurrentDictionary<long, KeyValuePair<Type, IEditableEntity>> UserEditingEntity { get; set; }

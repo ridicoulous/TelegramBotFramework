@@ -12,7 +12,7 @@
     <RepositoryType>GitHub</RepositoryType>
     <PackageTags>telegram telegram-bot bot-framework</PackageTags>
 	  <LangVersion>latest</LangVersion>
-    <Version>0.6.5.2</Version>
+    <Version>0.7.0</Version>
     <Copyright>ridicoulous</Copyright>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <PackageReleaseNotes>05/23/2021 - injected IDbContextFactory for simple CRUD module</PackageReleaseNotes>
