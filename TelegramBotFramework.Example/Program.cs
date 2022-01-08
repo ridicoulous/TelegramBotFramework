@@ -26,6 +26,7 @@ namespace TelegramBotFramework.Example
 
             var bot = new SimpleTelegramBot(opts);
             bot.Run();
+            
             Console.ReadLine();
         }
     }

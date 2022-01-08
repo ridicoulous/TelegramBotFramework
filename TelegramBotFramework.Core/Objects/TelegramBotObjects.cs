@@ -22,7 +22,7 @@ namespace TelegramBotFramework.Core.Objects
     }
     public abstract class TelegramBotModuleBase<T> : ITelegramBotModule where T : ITelegramBotWrapper
     {
-        public T BotWrapper;      
+        public readonly T BotWrapper;      
         public TelegramBotModuleBase(T wrapper)
         {
             BotWrapper = wrapper;
