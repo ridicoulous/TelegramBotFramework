@@ -21,18 +21,20 @@ namespace TelegramBotFramework.Core.SQLiteDb
         public DbSet<TelegramBotSetting> TelegramBotSettings { get; set; }
         public DbSet<TelegramBotGroup> TelegramBotGroups { get; set; }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        protected override void OnConfiguring(DbContextOptionsBuilder modelBuilder)
         {
+            base.OnConfiguring(modelBuilder);
+
             if (InMemory)
             {
                 var keepAliveConnection = new SqliteConnection("DataSource=:memory:");
                 keepAliveConnection.Open();
-                optionsBuilder.UseSqlite(keepAliveConnection);     
+                modelBuilder.UseSqlite(keepAliveConnection);     
                 
             }
             else
             {
-               optionsBuilder.UseSqlite($"Data Source={_db}.db");
+                modelBuilder.UseSqlite($"Data Source={_db}.db");
             }
         }
 

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using TelegramBotFramework.Core.Objects;
 
 namespace TelegramBotFramework.Core.Extensions
 {
@@ -24,7 +25,7 @@ namespace TelegramBotFramework.Core.Extensions
           BindingFlags.Instance |
           BindingFlags.NonPublic |
           BindingFlags.Public |
-          BindingFlags.Static)
+          BindingFlags.Static, params string[] fieldsToIgnore)
         {
             try
             {
@@ -32,8 +33,20 @@ namespace TelegramBotFramework.Core.Extensions
                 var props = source.GetType().GetProperties(bindingAttr);
                 foreach (var p in props)
                 {
+                    if (fieldsToIgnore.Contains(p.Name))
+                    {
+                        continue;
+                    }
                     if (p.IsDefined(typeof(JsonIgnoreAttribute)))
                         continue;
+                    if (p.IsDefined(typeof(IgnoreFieldAttribute), true))
+                    {
+                        continue;
+                    }
+                    if (!p.CanWrite || !p.CanRead)
+                    {
+                        continue;
+                    }
                     string key = p.Name;
                     if (p.IsDefined(typeof(JsonPropertyAttribute)))
                     {

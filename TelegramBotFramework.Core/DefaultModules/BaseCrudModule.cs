@@ -13,6 +13,8 @@ using TelegramBotFramework.Core.Helpers;
 using TelegramBotFramework.Core.Interfaces;
 using TelegramBotFramework.Core.Objects;
 using TelegramBotFramework.Core.SQLiteDb;
+using Telegram.Bot.Extensions;
+using Telegram.Bot;
 
 namespace TelegramBotFramework.Core.DefaultModules
 {
@@ -31,13 +33,13 @@ namespace TelegramBotFramework.Core.DefaultModules
 
         }
 
-        [ChatCommand(Triggers = new[] { "crud" }, BotAdminOnly = true, HelpText ="Entities updating")]
+        [ChatCommand(Triggers = new[] { "crud" }, BotAdminOnly = true, HelpText = "Entities updating")]
         public CommandResponse GetAllEntitesForCrud(CommandEventArgs args)
         {
             var entitesToEdit = GetEditableEntites();
             return new CommandResponse("Choose entity set for edit:", menu: GenerateMenuForEntity(entitesToEdit));
         }
-        [CallbackCommand(Trigger = BotCrudActions.EditEntity, BotAdminOnly =true)]
+        [CallbackCommand(Trigger = BotCrudActions.EditEntity, BotAdminOnly = true)]
         public CommandResponse OnEntityTypeChoosed(CallbackEventArgs args)
         {
             using (var db = BotWrapper.Db)
@@ -48,6 +50,7 @@ namespace TelegramBotFramework.Core.DefaultModules
                 {
                     return new CommandResponse("Something went wrong");
                 }
+
                 AddEditingEntityType(args.SourceUser.Id, typeOfEntitySetToEdit);
                 var firstValueToGetPrimaryKeyName = db.GetFirstOrDefault(typeOfEntitySetToEdit);
                 if (firstValueToGetPrimaryKeyName != null)
@@ -64,7 +67,12 @@ namespace TelegramBotFramework.Core.DefaultModules
                 foreach (var e in entitesToEdit)
                 {
                     var id = GetPropertyValue(typeOfEntitySetToEdit, e, _currentUpdatingPrimaryKeyName[args.SourceUser.Id]);
+                    if (id == null)
+                    {
+                        continue;
+                    }
                     var name = e as IEditableEntity;
+                   
                     menu.Buttons.Add(new InlineButton($"{name.EntityReadableName}", BotCrudActions.ChooseEntityForEditById, id.ToString()));
                 }
                 return new CommandResponse("Choose particular entity:", menu: menu);
@@ -77,6 +85,11 @@ namespace TelegramBotFramework.Core.DefaultModules
             {
                 try
                 {
+                    var message = BotWrapper.Bot.SendTextMessageAsync(args.SourceUser.UserId, "callback").GetAwaiter().GetResult();
+                    if (message != null)
+                    {
+                        var delete = BotWrapper.Bot.DeleteMessageAsync(args.SourceUser.UserId, message.MessageId);
+                    }
                     var entityValue = LoadEntityValuebyId(id: args.Parameters,
                                primaryKeyName: _currentUpdatingPrimaryKeyName[args.SourceUser.Id],
                                entityType: _currentUpdatingEntryType[args.SourceUser.Id],
@@ -85,7 +98,8 @@ namespace TelegramBotFramework.Core.DefaultModules
                     AddCurrentUpdatingValue(args.SourceUser.Id, entityValue);
                     var menu = new Menu();
                     menu.Columns = 1;
-                    foreach (var e in entityValue.AsDictionary())
+                    var pkName = _currentUpdatingPrimaryKeyName[args.SourceUser.Id];
+                    foreach (var e in entityValue.AsDictionary(fieldsToIgnore:pkName))
                     {
                         menu.Buttons.Add(new InlineButton($"{e.Key}:\t{e.Value}", BotCrudActions.FieldForEditChoosed, e.Key));
                     }
@@ -104,7 +118,7 @@ namespace TelegramBotFramework.Core.DefaultModules
             {
                 AddFieldForEditName(args.SourceUser.Id, args.Parameters);
                 var entryValue = _currentUpdatingEntryValue[args.SourceUser.Id] as IEditableEntity;
-                return new CommandResponse($"Write `{args.Parameters}` field of `{entryValue.EntityReadableName}` value:", parseMode: Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
+                return new CommandResponse($"Write `{args.Parameters}` field of `{entryValue.EntityReadableName}` value:", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             }
             catch (Exception ex)
             {
@@ -228,11 +242,11 @@ namespace TelegramBotFramework.Core.DefaultModules
                 }
                 var entryValue = _currentUpdatingEntryValue[userId] as IEditableEntity;
 
-                return new CommandResponse($"Value `{userInput}` for `{entryValue.EntityReadableName}.{_currentUpdatingFieldName[userId]}` was saved", parseMode: Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
+                return new CommandResponse($"Value `{userInput}` for `{entryValue.EntityReadableName}.{_currentUpdatingFieldName[userId]}` was saved", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             }
             catch (Exception ex)
             {
-                return new CommandResponse($"Value `{userInput}` for `{_currentUpdatingFieldName[userId]}` was not saved: {ex.ToString()}", parseMode: Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
+                return new CommandResponse($"Value `{userInput}` for `{_currentUpdatingFieldName[userId]}` was not saved: {ex.ToString()}", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
             }
             finally
             {
