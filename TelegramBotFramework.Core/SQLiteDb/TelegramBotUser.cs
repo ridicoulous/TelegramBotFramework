@@ -16,10 +16,12 @@ namespace TelegramBotFramework.Core.SQLiteDb
         /// <summary>
         /// The users Telegram Id
         /// </summary>
+        [IgnoreField]
         public long UserId { get; set; }
         /// <summary>
         /// The users @username
         /// </summary>
+        [IgnoreField]
         public string UserName { get; set; }
         /// <summary>
         /// The first time we saw this user
