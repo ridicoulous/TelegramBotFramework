@@ -15,6 +15,7 @@ using TelegramBotFramework.Core.Objects;
 using TelegramBotFramework.Core.SQLiteDb;
 using Telegram.Bot.Extensions;
 using Telegram.Bot;
+using System.Threading;
 
 namespace TelegramBotFramework.Core.DefaultModules
 {
@@ -84,12 +85,7 @@ namespace TelegramBotFramework.Core.DefaultModules
             using (var db = BotWrapper.Db)
             {
                 try
-                {
-                    var message = BotWrapper.Bot.SendTextMessageAsync(args.SourceUser.UserId, "callback").GetAwaiter().GetResult();
-                    if (message != null)
-                    {
-                        var delete = BotWrapper.Bot.DeleteMessageAsync(args.SourceUser.UserId, message.MessageId);
-                    }
+                {                    
                     var entityValue = LoadEntityValuebyId(id: args.Parameters,
                                primaryKeyName: _currentUpdatingPrimaryKeyName[args.SourceUser.Id],
                                entityType: _currentUpdatingEntryType[args.SourceUser.Id],
@@ -109,6 +105,7 @@ namespace TelegramBotFramework.Core.DefaultModules
                 {
                     return new CommandResponse($"Error occured: {ex.Message}");
                 }
+                
             }
         }
         [CallbackCommand(Trigger = BotCrudActions.FieldForEditChoosed, BotAdminOnly = true)]
