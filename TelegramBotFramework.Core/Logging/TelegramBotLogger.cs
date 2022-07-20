@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using TelegramBotFramework.Core.Interfaces;
 
 namespace TelegramBotFramework.Core.Logging
 {
@@ -10,11 +11,17 @@ namespace TelegramBotFramework.Core.Logging
     {
         public readonly string Path;
         private readonly Queue<LogQueueItem> _logQueue = new Queue<LogQueueItem>();
-        public TelegramBotLogger(string directory)
+        private ITelegramBotOptions _options;
+        public TelegramBotLogger(ITelegramBotOptions options, string directory)
         {
+            _options = options;
             Path = directory;
-            Directory.CreateDirectory(Path);
-            new Task(WatchQueue).Start();
+
+            if (_options.FileLog)
+            {
+                Directory.CreateDirectory(Path);
+                new Task(WatchQueue).Start();
+            }
         }
         public void Write(object msg, LogLevel level = LogLevel.Info, ConsoleColor? overrideColor = null, string fileName = "log.log")
         {
@@ -43,7 +50,8 @@ namespace TelegramBotFramework.Core.Logging
                         break;
                 }
             finalMessage += msg.ToString();
-            _logQueue.Enqueue(new LogQueueItem(System.IO.Path.Combine(Path, fileName), finalMessage));
+            if (_options.FileLog)
+                _logQueue.Enqueue(new LogQueueItem(System.IO.Path.Combine(Path, fileName), finalMessage));
 
             Console.ForegroundColor = color;
             Console.Write(finalMessage);

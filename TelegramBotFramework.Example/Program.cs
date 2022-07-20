@@ -21,7 +21,7 @@ namespace TelegramBotFramework.Example
             var builder = new ConfigurationBuilder().AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
             var configuration = builder.Build();
 
-            var opts = new DefaultBotOptions(configuration["key"], int.Parse(configuration["admin"]));
+            var opts = new DefaultBotOptions(configuration["key"], long.Parse(configuration["admin"]));
             opts.InMemoryDb = false;
 
             var bot = new SimpleTelegramBot(opts);

@@ -125,19 +125,17 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
         }
 
         #region Helpers
-        public static TelegramBotUser GetTarget(this Message message, string args, TelegramBotUser sourceUser, ITelegramBotDbContext db)
+        public static TelegramBotUser GetTarget(this Message message, string args, ITelegramBotDbContext db)
         {
-            if (message == null) return sourceUser;
+            if (message == null) return null;
             if (message?.ReplyToMessage != null)
             {
                 var m = message.ReplyToMessage;
                 var userid = m.ForwardFrom?.Id ?? m.From.Id;
-                return db.TelegramBotUsers.AsNoTracking().FirstOrDefault(x => x.UserId == userid) ?? sourceUser;
+                return db.TelegramBotUsers.AsNoTracking().FirstOrDefault(x => x.UserId == userid);
             }
             if (String.IsNullOrWhiteSpace(args))
-            {
-                return sourceUser;
-            }
+                return null;
             //check for a user mention
             var mention = message?.Entities.FirstOrDefault(x => x.Type == MessageEntityType.Mention);
             var textmention = message?.Entities.FirstOrDefault(x => x.Type == MessageEntityType.TextMention);
@@ -160,7 +158,7 @@ namespace TelegramBotFramework.Core.SQLiteDb.Extensions
                         x =>
                             String.Equals(x.UserId.ToString(), args, StringComparison.InvariantCultureIgnoreCase) ||
                             String.Equals(x.UserName, args.Replace("@", ""), StringComparison.InvariantCultureIgnoreCase));
-            return result ?? sourceUser;
+            return result;
         }
         #endregion
     }

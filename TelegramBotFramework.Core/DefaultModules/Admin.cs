@@ -86,7 +86,10 @@ namespace TelegramBotFramework.DefaultModules
                     target.IsBotAdmin = true;
                     return new CommandResponse($"{target.Name} is now a bot admin.");
                 }
-                return new CommandResponse(null);
+                if (target != null && target.Id == args.SourceUser.Id)
+                    return new CommandResponse("You can't add yourself!");
+                else
+                    return new CommandResponse("Unknown user or user is not cached!");
             }          
         }
 
@@ -99,7 +102,10 @@ namespace TelegramBotFramework.DefaultModules
                 target.IsBotAdmin = false;
                 return new CommandResponse($"{target.Name} is no longer a bot admin.");
             }
-            return new CommandResponse(null);
+            if (target != null && target.Id == args.SourceUser.Id)
+                return new CommandResponse("You can't remove yourself!");
+            else 
+                return new CommandResponse("Unknown user or user is not cached!");
         }
         [ChatCommand(Triggers = new[] { "users" }, DevOnly = true, DontSearchInline = true)]
         public CommandResponse GetUsersList(CommandEventArgs args)
