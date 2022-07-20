@@ -1,4 +1,4 @@
-﻿
+
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Concurrent;
@@ -130,7 +130,7 @@ namespace TelegramBotFramework.Core
             {
                 Directory.CreateDirectory(Path.Combine(RootDirectory));
             }
-            Log = new TelegramBotLogger(Path.Combine(RootDirectory, "Logs-" + Options.Alias));
+            Log = new TelegramBotLogger(options, Path.Combine(RootDirectory, "Logs-" + Options.Alias));
             var setting = new TelegramBotSetting() { Alias = options.Alias, TelegramDefaultAdminUserId = Options.AdminId, TelegramBotAPIKey = Options.Key };
             LoadedSetting = setting;
 
@@ -180,21 +180,26 @@ namespace TelegramBotFramework.Core
 
         public void LoadModules()
         {
+            var currentAssembly = Assembly.GetExecutingAssembly();
             //Clear the list
             Commands.Clear();
             //load base methods first
-            GetMethodsFromAssembly(Assembly.GetExecutingAssembly());
-            Log.WriteLine("Scanning Addon TelegramBotModules directory for custom TelegramBotModules...", overrideColor: ConsoleColor.Cyan);
-            var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-" + LoadedSetting.Alias);
-            Directory.CreateDirectory(telegramBotModuleDir);
-
-            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-
-            //now load TelegramBotModules from directory
-            foreach (var file in Directory.GetFiles(telegramBotModuleDir, "*.dll"))
+            if (Options.DefaultModules)
+                GetMethodsFromAssembly(currentAssembly);
+            if (Options.AddonModules)
             {
-                GetMethodsFromAssembly(Assembly.LoadFrom(file));
+                Log.WriteLine("Scanning Addon TelegramBotModules directory for custom TelegramBotModules...", overrideColor: ConsoleColor.Cyan);
+                var telegramBotModuleDir = Path.Combine(RootDirectory, "AddonModules-" + LoadedSetting.Alias);
+                Directory.CreateDirectory(telegramBotModuleDir);
+
+                //now load TelegramBotModules from directory
+                foreach (var file in Directory.GetFiles(telegramBotModuleDir, "*.dll"))
+                {
+                    GetMethodsFromAssembly(Assembly.LoadFrom(file));
+                }
             }
+
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(a=> a != currentAssembly);
             foreach (var assembly in assemblies)
             {
                 GetMethodsFromAssembly(assembly);
