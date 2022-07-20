@@ -12,7 +12,7 @@ namespace TelegramBotFramework.Core.Helpers
 {
     public static class UserHelper
     {
-        public static TelegramBotUser GetTelegramUser(ITelegramBotDbContext db, int adminId, Update update = null, InlineQuery query = null, CallbackQuery cbQuery = null, bool logPoint = true)
+        public static TelegramBotUser GetTelegramUser(ITelegramBotDbContext db, long adminId, Update update = null, InlineQuery query = null, CallbackQuery cbQuery = null, bool logPoint = true)
         {           
             using(db)
             {
@@ -45,7 +45,7 @@ namespace TelegramBotFramework.Core.Helpers
 
         public static TelegramBotUser GetTarget(this ITelegramBotDbContext db, CommandEventArgs args)
         {
-            return  args.Message.GetTarget(args.Parameters, args.SourceUser, db);
+            return  args.Message.GetTarget(args.Parameters, db);
         }
     }
 }

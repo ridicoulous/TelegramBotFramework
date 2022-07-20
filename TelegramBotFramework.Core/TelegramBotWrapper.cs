@@ -248,7 +248,7 @@ namespace TelegramBotFramework.Core
                         {
                             if (paramss[0].ParameterType.IsAssignableFrom(currentBot))
                             {
-                                Log.WriteLine($"Finded constructor, invoking it for loading {moduleAttributes.Name} at {this.GetType().FullName}");
+                                Log.WriteLine($"Found constructor, invoking it for loading {moduleAttributes.Name} at {this.GetType().FullName}");
 
                                 instance = c.Invoke(new object[] { this });
                             }
@@ -264,7 +264,7 @@ namespace TelegramBotFramework.Core
                     }
                     if (Modules.ContainsKey(moduleAttributes))
                     {
-                        Log.WriteLine($"{moduleAttributes.Name} has been already loaded. Rename it, if it is no dublicate");
+                        Log.WriteLine($"{moduleAttributes.Name} has been already loaded. Rename it, if it is no duplicate");
                         continue;
                     }
                     Modules.Add(moduleAttributes, instance);
@@ -287,7 +287,7 @@ namespace TelegramBotFramework.Core
                         var att = method.GetCustomAttributes<ChatCommand>().First();
                         if (Commands.ContainsKey(att))
                         {
-                            Log.WriteLine($"ChatCommand {method.Name}\n\t  with Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)} not loaded, possible dublicate", overrideColor: ConsoleColor.Cyan);
+                            Log.WriteLine($"ChatCommand {method.Name}\n\t  with Trigger(s): {att.Triggers.Aggregate((a, b) => a + ", " + b)} not loaded, possible duplicate", overrideColor: ConsoleColor.Cyan);
                             continue;
                         }
                         Commands.Add(att, (ChatCommandMethod)Delegate.CreateDelegate(typeof(ChatCommandMethod), instance, method));
@@ -302,7 +302,7 @@ namespace TelegramBotFramework.Core
 
                         if (CallbackCommands.ContainsKey(att))
                         {
-                            Log.WriteLine($"Not loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}, possible dublicate", overrideColor: ConsoleColor.Cyan);
+                            Log.WriteLine($"Not loaded CallbackCommand {m.Name}\n\t Trigger: {att.Trigger}, possible duplicate", overrideColor: ConsoleColor.Cyan);
                             continue;
                         }
                         CallbackCommands.Add(att, (CallbackCommandMethod)Delegate.CreateDelegate(typeof(CallbackCommandMethod), instance, m));

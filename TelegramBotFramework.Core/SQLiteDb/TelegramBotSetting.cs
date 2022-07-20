@@ -19,7 +19,7 @@ namespace TelegramBotFramework.Core.SQLiteDb
         /// <summary>
         /// The ID of the Telegram user who will be the main admin for the bot (typically, the person running the code)
         /// </summary>
-        public int TelegramDefaultAdminUserId { get; set; }
+        public long TelegramDefaultAdminUserId { get; set; }
         /// <summary>
         /// Your Telegram Bot API Token
         /// </summary>
